@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using UnityEngine.UIElements;
 using Random = UnityEngine.Random;
 
 namespace Leonardo.Scripts
@@ -18,6 +20,7 @@ namespace Leonardo.Scripts
         private Dictionary<int, PlayerData> players = new Dictionary<int, PlayerData>();
         private PlayerData localPlayer;
 
+        #region Unity Methods
         private void Awake()
         {
             if (instance == null)
@@ -44,12 +47,43 @@ namespace Leonardo.Scripts
                 Debug.Log("Connected to server! Yay!");
                 
                 // Send the player data.
+                byte[] buffer = SerializePlayerData(localPlayer);
+                socket.Send(buffer);
             }
             catch (SocketException socketException)
             {
                 Debug.LogWarning($"NetworkManager.cs, socket exception: {socketException.Message}");
             }
-            
+        }
+
+        private void Update()
+        {
+            if (socket.Available > 0)
+            {
+                byte[] buffer = new byte[socket.Available];
+                socket.Receive(buffer);
+                // Deserialize here later..
+            }
+        }
+
+        #endregion
+
+
+        private byte[] SerializePlayerData(PlayerData playerData)
+        {
+            MemoryStream memoryStream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(memoryStream);
+            {
+                writer.Write(playerData.name);
+                writer.Write(playerData.tag);
+                writer.Write(playerData.position.x);
+                writer.Write(playerData.position.y);
+                writer.Write(playerData.position.z);
+                writer.Write(playerData.rotation.x);
+                writer.Write(playerData.rotation.y);
+                writer.Write(playerData.rotation.z);
+                return memoryStream.ToArray();
+            }
         }
     }
 }
