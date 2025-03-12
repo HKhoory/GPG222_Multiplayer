@@ -1,11 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using UnityEngine.UIElements;
 using Random = UnityEngine.Random;
 
 namespace Leonardo.Scripts
@@ -14,9 +10,9 @@ namespace Leonardo.Scripts
     {
         [SerializeField] private string ipAddress = "127.0.0.1";
         [SerializeField] private int port = 8080;
-        
+
         private Socket socket;
-        public static NetworkManager instance {get; private set;}
+        public static NetworkManager instance { get; private set; }
         private Dictionary<int, PlayerData> players = new Dictionary<int, PlayerData>();
         private PlayerData localPlayer;
 
@@ -39,21 +35,7 @@ namespace Leonardo.Scripts
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             // Try to connect to server.
-            try
-            {
-                localPlayer = new PlayerData("Player", Random.Range(0, 9999), Vector3.zero, Quaternion.identity);
-                socket.Connect(ipAddress, port);
-                socket.Blocking = false;
-                Debug.Log("Connected to server! Yay!");
-                
-                // Send the player data.
-                byte[] buffer = SerializePlayerData(localPlayer);
-                socket.Send(buffer);
-            }
-            catch (SocketException socketException)
-            {
-                Debug.LogWarning($"NetworkManager.cs, socket exception: {socketException.Message}");
-            }
+            ConnectToServer("Player" + Random.Range(1, 9999));
         }
 
         private void Update()
@@ -62,12 +44,12 @@ namespace Leonardo.Scripts
             {
                 byte[] buffer = new byte[socket.Available];
                 socket.Receive(buffer);
-                // Deserialize here later..
+                DeserialzePlayerData(buffer);
             }
         }
 
         #endregion
-
+        #region Private Methods
 
         private byte[] SerializePlayerData(PlayerData playerData)
         {
@@ -85,5 +67,49 @@ namespace Leonardo.Scripts
                 return memoryStream.ToArray();
             }
         }
+
+        private void DeserialzePlayerData(byte[] buffer)
+        {
+            MemoryStream memoryStream = new MemoryStream(buffer);
+            BinaryReader reader = new BinaryReader(memoryStream);
+            {
+                string name = reader.ReadString();
+                int tag = reader.ReadInt32();
+                Vector3 position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                Quaternion rotation = new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
+                    reader.ReadSingle());
+
+                if (!players.ContainsKey(tag))
+                {
+                    players[tag] = new PlayerData(name, tag, position, rotation);
+                    Debug.Log($"New player joined {name}");
+                }
+                else
+                {
+                    players[tag].position = position;
+                    players[tag].rotation = rotation;
+                }
+            }
+        }
+
+        private void ConnectToServer(string username)
+        {
+            try
+            {
+                localPlayer = new PlayerData(username, Random.Range(0, 9999), Vector3.zero, Quaternion.identity);
+                socket.Connect(ipAddress, port);
+                socket.Blocking = false;
+                Debug.Log("Connected to server! Yay!");
+
+                // Send the player data.
+                byte[] buffer = SerializePlayerData(localPlayer);
+                socket.Send(buffer);
+            }
+            catch (SocketException socketException)
+            {
+                Debug.LogWarning($"NetworkManager.cs, socket exception: {socketException.Message}");
+            }
+        }
+        #endregion
     }
 }
