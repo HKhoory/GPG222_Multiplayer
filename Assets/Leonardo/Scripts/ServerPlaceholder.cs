@@ -75,7 +75,7 @@ namespace Leonardo.Scripts
                     byte[] data = SerializePlayerData(receivedPlayer);
                     foreach (var _client in clients)
                     {
-                        client.Send(data);
+                        _client.Send(data);
                     }
                 }
             }

@@ -70,6 +70,7 @@ namespace Leonardo.Scripts
                 writer.Write(playerData.rotation.x);
                 writer.Write(playerData.rotation.y);
                 writer.Write(playerData.rotation.z);
+                writer.Write(playerData.rotation.w);
                 return memoryStream.ToArray();
             }
         }
@@ -89,7 +90,7 @@ namespace Leonardo.Scripts
                 {
                     players[tag] = new PlayerData(name, tag, position, rotation);
                     
-                    // Spawn player in scene.
+                    // Spawn player in scene.\\
                     GameObject newPlayer = Instantiate(playerPrefab, position, rotation);
                     newPlayer.GetComponent<PlayerController>().playerData = players[tag];
                     
