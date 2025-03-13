@@ -95,7 +95,7 @@ namespace Leonardo.Scripts
                     
                     // Save the reference of this player's object in the dictionary for future proofing (maybe we'll need it later in the project).
                     playerObjects[tag] = newPlayer;
-                    Debug.Log($"New player joined {name}");
+                    Debug.LogWarning($"New player joined {name}");
                 }
                 else
                 {
@@ -114,7 +114,7 @@ namespace Leonardo.Scripts
                 localPlayer = new PlayerData(username, Random.Range(0, 9999), Vector3.zero, Quaternion.identity);
                 socket.Connect(ipAddress, port);
                 socket.Blocking = false;
-                Debug.Log("Connected to server! Yay!");
+                Debug.LogWarning("Connected to server! Yay!");
 
                 // Send the player data.
                 byte[] buffer = SerializePlayerData(localPlayer);
