@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using System.IO;
 
-public class Packet : MonoBehaviour
+public class Packet
 {
     protected MemoryStream _memoryStreamWriter;
     protected BinaryWriter _binaryWriter;
