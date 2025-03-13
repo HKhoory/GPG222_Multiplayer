@@ -1,0 +1,1 @@
+This is the code Mustafa has done in class, so we can use it as placeholder while working on our parts, or as a guide/reference. We do not take any credit from anything in this namespace/folder.

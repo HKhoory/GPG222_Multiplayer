@@ -1,5 +1,5 @@
 using System.IO;
-
+using Hamad;
 public class Packet
 {
     protected MemoryStream _memoryStreamWriter;
@@ -20,18 +20,18 @@ public class Packet
     }
 
     public PacketType packetType;
-    //public PlayerData playerData;
+    public PlayerData playerData;
 
     public Packet()
     {
         packetType = PacketType.None;
-        //playerData = null;
+        playerData = null;
     }
 
-    public Packet(PacketType packetType)
+    public Packet(PacketType packetType, PlayerData playerData)
     {
         this.packetType = packetType;
-        //have one for playerData too
+        this.playerData = playerData;
     }
 
     protected void BeginSerialize()
@@ -39,7 +39,13 @@ public class Packet
         _memoryStreamWriter = new MemoryStream();
         _binaryWriter = new BinaryWriter(_memoryStreamWriter);
         _binaryWriter.Write((int)packetType);
-        //have one for playerData ID, maybe position, and color
+        _binaryWriter.Write(playerData.name);
+        _binaryWriter.Write(playerData.tag);
+        _binaryWriter.Write(playerData.xPos);
+        _binaryWriter.Write(playerData.yPos);
+        _binaryWriter.Write(playerData.zPos);
+        //maybe color
+        //and quaternion
         //tag as well
     }
 
@@ -50,11 +56,12 @@ public class Packet
 
     public void Deserialize(byte[] buffer)
     {
-        //_memoryStreamReader = new MemoryStream(buffer);
-        //_binaryReader = new BinaryReader(_memoryStreamReader);
+        _memoryStreamReader = new MemoryStream(buffer);
+        _binaryReader = new BinaryReader(_memoryStreamReader);
 
         packetType = (PacketType)_binaryReader.ReadInt32();
-        //playerData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt32());
+        playerData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt32(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64());
+        //for now we have the name, id, x y and z positions
 
     }
 

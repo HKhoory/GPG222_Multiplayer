@@ -8,11 +8,17 @@ namespace Leonardo.Scripts
 {
     public class NetworkManager : MonoBehaviour
     {
+        [Header("- Connection Settings")]
         [SerializeField] private string ipAddress = "127.0.0.1";
         [SerializeField] private int port = 8080;
 
+        [Header("- Players Settings")]
+        [SerializeField] private GameObject playerPrefab;
+
+        private Dictionary<int, GameObject> playerObjects = new Dictionary<int, GameObject>();
+        
         private Socket socket;
-        public static NetworkManager instance { get; private set; }
+        private static NetworkManager instance { get; set; }
         private Dictionary<int, PlayerData> players = new Dictionary<int, PlayerData>();
         private PlayerData localPlayer;
 
@@ -64,6 +70,7 @@ namespace Leonardo.Scripts
                 writer.Write(playerData.rotation.x);
                 writer.Write(playerData.rotation.y);
                 writer.Write(playerData.rotation.z);
+                writer.Write(playerData.rotation.w);
                 return memoryStream.ToArray();
             }
         }
@@ -82,12 +89,21 @@ namespace Leonardo.Scripts
                 if (!players.ContainsKey(tag))
                 {
                     players[tag] = new PlayerData(name, tag, position, rotation);
-                    Debug.Log($"New player joined {name}");
+                    
+                    // Spawn player in scene.\\
+                    GameObject newPlayer = Instantiate(playerPrefab, position, rotation);
+                    newPlayer.GetComponent<PlayerController>().playerData = players[tag];
+                    
+                    // Save the reference of this player's object in the dictionary for future proofing (maybe we'll need it later in the project).
+                    playerObjects[tag] = newPlayer;
+                    Debug.LogWarning($"New player joined {name}");
                 }
                 else
                 {
                     players[tag].position = position;
                     players[tag].rotation = rotation;
+                    
+                    playerObjects[tag].GetComponent<PlayerController>().UpdatePlayerPosition(position, rotation);
                 }
             }
         }
@@ -99,7 +115,7 @@ namespace Leonardo.Scripts
                 localPlayer = new PlayerData(username, Random.Range(0, 9999), Vector3.zero, Quaternion.identity);
                 socket.Connect(ipAddress, port);
                 socket.Blocking = false;
-                Debug.Log("Connected to server! Yay!");
+                Debug.LogWarning("Connected to server! Yay!");
 
                 // Send the player data.
                 byte[] buffer = SerializePlayerData(localPlayer);
