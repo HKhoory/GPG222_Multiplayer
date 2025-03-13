@@ -14,9 +14,7 @@ public class Packet
         Message,
         Id,
         Color,
-        xPos,
-        yPos,
-        zPos
+        PlayersPositionData
     }
 
     public PacketType packetType;
@@ -41,9 +39,7 @@ public class Packet
         _binaryWriter.Write((int)packetType);
         _binaryWriter.Write(playerData.name);
         _binaryWriter.Write(playerData.tag);
-        _binaryWriter.Write(playerData.xPos);
-        _binaryWriter.Write(playerData.yPos);
-        _binaryWriter.Write(playerData.zPos);
+        
         //maybe color
         //and quaternion
         //tag as well
@@ -60,7 +56,8 @@ public class Packet
         _binaryReader = new BinaryReader(_memoryStreamReader);
 
         packetType = (PacketType)_binaryReader.ReadInt32();
-        playerData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt32(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64());
+        //playerData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt32(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64());
+        playerData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt32());
         //for now we have the name, id, x y and z positions
 
     }

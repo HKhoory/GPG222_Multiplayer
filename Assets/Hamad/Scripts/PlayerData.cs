@@ -10,19 +10,15 @@ namespace Hamad
         public int tag { get; private set; }
         public Vector3 position { get; set; }
 
-        public float xPos { get; set; }
-        public float yPos { get; set; }
-        public float zPos { get; set; }
+
         public Quaternion rotation { get; set; }
 
-        public PlayerData(string name, int tag, float xPos, float yPos, float zPos)
+        public PlayerData(string name, int tag)
         {
             this.name = name;
             this.tag = tag;
             //this.position = position;
-            this.xPos = xPos;
-            this.yPos = yPos;
-            this.zPos = zPos;
+
         }
     }
 
