@@ -61,7 +61,7 @@ public class Packet
 
         packetType = (PacketType)_binaryReader.ReadInt32();
         playerData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt32(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64());
-        //need to write the vector 3 and quaternion
+        //for now we have the name, id, x y and z positions
 
     }
 
