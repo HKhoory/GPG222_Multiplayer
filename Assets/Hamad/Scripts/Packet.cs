@@ -14,7 +14,8 @@ public class Packet
         Message,
         Id,
         Color,
-        PlayersPositionData
+        PlayersPositionData,
+        PlayersRotationData
     }
 
     public PacketType packetType;

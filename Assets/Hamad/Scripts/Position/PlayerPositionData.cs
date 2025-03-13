@@ -15,6 +15,7 @@ public class PlayerPositionData
 
     public PlayerPositionData(PlayerData playerData, float xPos, float yPos, float zPos)
     {
+        this.playerData = playerData;
         this.xPos = xPos;
         this.yPos = yPos;
         this.zPos = zPos;
