@@ -8,12 +8,14 @@ public class PositionPacket : Packet
     public float yPosition { get; private set; }
     public float zPosition { get; private set; }
 
-    /*
+    
     public PositionPacket() : base(PacketType.None, null)
     {
-        Position = new Vector3(0, 0, 0);
+        xPosition = 0;
+        yPosition = 0;
+        zPosition = 0;
     }
-    */
+    
 
     public byte[] Serialize()
     {

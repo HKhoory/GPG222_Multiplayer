@@ -28,7 +28,9 @@ public class PlayersPositionDataPacket : Packet
         {
             _binaryWriter.Write(PlayerPositionData[i].playerData.name);
             _binaryWriter.Write(PlayerPositionData[i].playerData.tag);
-            _binaryWriter.Write(PlayerPositionData[i].posIndex);
+            _binaryWriter.Write(PlayerPositionData[i].xPos);
+            _binaryWriter.Write(PlayerPositionData[i].yPos);
+            _binaryWriter.Write(PlayerPositionData[i].zPos);
         }
         return EndSerialize();
     }
@@ -43,9 +45,9 @@ public class PlayersPositionDataPacket : Packet
         for (int i = 0; i < playerPositionDataListCount; i++)
         {
 
-            //PlayerData pData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt32(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64());
+            //PlayerData pData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64());
             PlayerData pData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt32());
-            PlayerPositionData ppData = new PlayerPositionData(pData, _binaryReader.ReadInt32());
+            PlayerPositionData ppData = new PlayerPositionData(pData, _binaryReader.ReadInt64(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64());
             PlayerPositionData.Add(ppData);
 
         }
