@@ -11,29 +11,46 @@ namespace Dyson_GPG222_Server
         public static int MaxPlayers { get; private set; }
         public static int Port { get; private set; }
 
-        private TcpListener tcpListener;
+        private static TcpListener tcpListener;
+
+        public static Dictionary<int, TestClient> clients = new Dictionary<int, TestClient>();
         // Start is called before the first frame update
-        void Start()
+        public static void Start(int maxPlayers, int port)
         {
-            Port = 4200;
+            MaxPlayers = maxPlayers;
+            Port = port;
+            Debug.Log( $"Server started on {Port}");
+            InitializeServerData();
+            tcpListener = new TcpListener(IPAddress.Any, Port);
+            tcpListener.Start();
+            tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
         }
 
-        private void TCPConnectCallback(IAsyncResult result)
+        private static void TCPConnectCallback(IAsyncResult result)
         {
             TcpClient client = tcpListener.EndAcceptTcpClient(result);
             
             // Keep listening if new clients join 
             tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
+             Debug.Log(client.Client.RemoteEndPoint + " : Player connecting");
+            for (int i = 1; i <= MaxPlayers; i++)
+            {
+                if (clients[i].tcp.socket == null)
+                {
+                    clients[i].tcp.Connect(client);
+                    return;
+                }
+            }
+            
+            Debug.Log(client.Client.RemoteEndPoint + " : Server full");
         }
 
-        // Function called on JoinServer button
-        
-        public void JoinServer()
+        private static void InitializeServerData()
         {
-            Debug.Log("Server started");
-            tcpListener = new TcpListener(IPAddress.Any, Port);
-            tcpListener.Start();
-            tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
+            for (int i = 0; i <= MaxPlayers; i++)
+            {
+                clients.Add(i, new TestClient(i));
+            }
         }
     }
 }
