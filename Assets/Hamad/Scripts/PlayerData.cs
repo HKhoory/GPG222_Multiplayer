@@ -19,7 +19,10 @@ namespace Hamad
         {
             this.name = name;
             this.tag = tag;
-            this.position = position;
+            //this.position = position;
+            this.xPos = xPos;
+            this.yPos = yPos;
+            this.zPos = zPos;
         }
     }
 
