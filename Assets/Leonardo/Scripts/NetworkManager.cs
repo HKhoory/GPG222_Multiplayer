@@ -202,56 +202,57 @@ namespace Leonardo.Scripts
                 throw;
             }
         }
-
-        private void Broadcast(byte[] data)
-        {
-            throw new NotImplementedException();
-        }
         
         // Handles deserializing the packet and running logic depending on the type of packet that it is.
-        private void HandlePacket(byte[] data)
-        {
-            Packet basePacket = new Packet();
-            basePacket.Deserialize(data);
-            switch (basePacket.packetType)
+private void HandlePacket(byte[] data)
+{
+    Packet basePacket = new Packet();
+    basePacket.Deserialize(data);
+
+    switch (basePacket.packetType)
+    {
+        case Packet.PacketType.Message:
+            MessagePacket messagePacket = new MessagePacket().Deserialize(data);
+            Debug.Log($"NetworkManager.cs: Received message from {messagePacket.playerData.name}: {messagePacket.Message}");
+            break;
+
+        case Packet.PacketType.PlayersPositionData:
+            PlayersPositionDataPacket positionPacket = new PlayersPositionDataPacket().Deserialize(data);
+            Debug.Log($"NetworkManager.cs: Received position updates for {positionPacket.PlayerPositionData.Count} players.");
+
+            foreach (var playerPos in positionPacket.PlayerPositionData)
             {
-                case Packet.PacketType.Message:
-                    MessagePacket messagePacket = new MessagePacket().Deserialize(data);
-                    Debug.LogWarning(
-                        $"NetworkMananger.cs: Received message from {messagePacket.playerData.name}: {messagePacket.Message}");
-                    // Later pass the message to the UI manager for it to be displayed to other players.
-                    break;
-
-                // Color packages.
-                case Packet.PacketType.Color:
-                    // I don't think we'll end up using color but whatever logic for these packages goes here.
-                    break;
-
-                case Packet.PacketType.PlayersPositionData:
-                    PlayersPositionDataPacket playersPositionDataPacket =
-                        new PlayersPositionDataPacket().Deserialize(data);
-                    Debug.LogWarning(
-                        $"Received positions for {playersPositionDataPacket.PlayerPositionData.Count} players.");
-
-                    // TODO: Add sync logic here later.
-
-                    break;
-
-                case Packet.PacketType.PlayersRotationData:
-                    PlayersRotationDataPacket playersRotationDataPacket =
-                        new PlayersRotationDataPacket().Deserialize(data);
-                    Debug.LogWarning(
-                        $"Received rotations for {playersRotationDataPacket.PlayerRotationData.Count} players.");
-
-                    // TODO: Add sync logic here later.
-
-                    break;
-
-                default:
-                    Debug.LogWarning($"TestClient.cs: received unknown packet type: {basePacket.packetType}");
-                    break;
+                if (!playerObjects.ContainsKey(playerPos.playerData.tag))
+                {
+                    GameObject newPlayer = Instantiate(playerPrefab, new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos), Quaternion.identity);
+                    playerObjects[playerPos.playerData.tag] = newPlayer;
+                }
+                else
+                {
+                    playerObjects[playerPos.playerData.tag].transform.position = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
+                }
             }
-        }
+            break;
+
+        case Packet.PacketType.PlayersRotationData:
+            PlayersRotationDataPacket rotationPacket = new PlayersRotationDataPacket().Deserialize(data);
+            Debug.Log($"NetworkManager.cs: Received rotation updates for {rotationPacket.PlayerRotationData.Count} players.");
+
+            foreach (var playerRot in rotationPacket.PlayerRotationData)
+            {
+                if (playerObjects.ContainsKey(playerRot.playerData.tag))
+                {
+                    playerObjects[playerRot.playerData.tag].transform.rotation = Quaternion.Euler(playerRot.xRot, playerRot.yRot, playerRot.zRot);
+                }
+            }
+            break;
+
+        default:
+            Debug.LogWarning($"NetworkManager.cs: Unknown packet type received.");
+            break;
+    }
+}
+
 
         // Methods for future use.
         public void SendMessage(string message)
