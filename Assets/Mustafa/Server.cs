@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿/*using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using Leonardo.Scripts;
@@ -41,7 +41,7 @@ namespace Mustafa
                         byte[] buffer = new PlayersColorDataPacket(serverPayerData, playerColorData).Serialize();
                         clients[i].Send(buffer);
                     }
-                }*/
+                }#1#
 
                 Debug.LogError("Client connected!");
             }
@@ -71,7 +71,7 @@ namespace Mustafa
                                 ColorPacket cp = new ColorPacket().Deserialize(buffer);
                                 playerColorData.Add(new PlayerColorData(bp.playerData, cp.ColorIndex));
                                 break;
-                        }*/
+                        }#1#
 
                         for (int j = 0; j < clients.Count; j++)
                         {
@@ -92,4 +92,4 @@ namespace Mustafa
             }
         }
     }
-}
+}*/

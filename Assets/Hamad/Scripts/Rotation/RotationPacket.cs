@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Hamad.Scripts;
 using UnityEngine;
 
 public class RotationPacket : Packet
@@ -30,9 +31,9 @@ public class RotationPacket : Packet
     {
         base.Deserialize(buffer);
         //Position = _binaryReader.ReadInt32();
-        xRotation = _binaryReader.ReadInt64();
-        yRotation = _binaryReader.ReadInt64();
-        zRotation = _binaryReader.ReadInt64();
+        xRotation = _binaryReader.ReadSingle();
+        yRotation = _binaryReader.ReadSingle();
+        zRotation = _binaryReader.ReadSingle();
         return this;
     }
 }

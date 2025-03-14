@@ -1,8 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-namespace Hamad
+namespace Hamad.Scripts
 {
     public class PlayerData
     {

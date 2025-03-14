@@ -1,35 +1,33 @@
-using Hamad;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class MessagePacket : Packet
+namespace Hamad.Scripts.Message
 {
-    public string Message { get; private set; }
-
-    public MessagePacket() : base(PacketType.None, null)
+    public class MessagePacket : Packet
     {
-        Message = "";
-    }
+        public string Message { get; private set; }
 
-    public MessagePacket(PlayerData playerData, string message) : base(PacketType.Message, playerData)
-    {
-        this.playerData = playerData;
-        Message = message;
-    }
+        public MessagePacket() : base(PacketType.None, null)
+        {
+            Message = "";
+        }
 
-    public byte[] Serialize()
-    {
-        BeginSerialize();
-        _binaryWriter.Write(Message);
-        return EndSerialize();
-    }
+        public MessagePacket(PlayerData playerData, string message) : base(PacketType.Message, playerData)
+        {
+            this.playerData = playerData;
+            Message = message;
+        }
 
-    public new MessagePacket Deserialize(byte[] buffer)
-    {
-        base.Deserialize(buffer);
-        Message = _binaryReader.ReadString();
-        return this;
-    }
+        public byte[] Serialize()
+        {
+            BeginSerialize();
+            _binaryWriter.Write(Message);
+            return EndSerialize();
+        }
 
+        public new MessagePacket Deserialize(byte[] buffer)
+        {
+            base.Deserialize(buffer);
+            Message = _binaryReader.ReadString();
+            return this;
+        }
+
+    }
 }
