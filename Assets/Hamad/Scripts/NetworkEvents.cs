@@ -1,11 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class NetworkEvents : MonoBehaviour
+namespace Hamad.Scripts
 {
+    public class NetworkEvents : MonoBehaviour
+    {
 
-    /*
+        /*
     public delegate void ServerConnect();
     public ServerConnect ServerConnectEvent;
 
@@ -38,4 +38,5 @@ public class NetworkEvents : MonoBehaviour
     public PlayerRotated PlayerRotatedEvent;
 
     */
+    }
 }
