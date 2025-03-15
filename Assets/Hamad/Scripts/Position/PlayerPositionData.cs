@@ -25,6 +25,10 @@ namespace Hamad.Scripts.Position
         {
             this.playerData = playerData;
             this.pos = posIndex;
+            
+            this.xPos = posIndex.x;
+            this.yPos = posIndex.y;
+            this.zPos = posIndex.z;
         }
 
     }

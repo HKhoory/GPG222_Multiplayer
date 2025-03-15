@@ -1,13 +1,11 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using System.Net;
 using System.Net.Sockets;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
+using Hamad.Scripts.Rotation;
 
 namespace Dyson_GPG222_Server
 {
@@ -17,11 +15,14 @@ namespace Dyson_GPG222_Server
         public static int Port { get; private set; }
 
         private static TcpListener tcpListener;
-
-        public static Dictionary<int, TestClient> clients = new Dictionary<int, TestClient>();
-
         
         public static void Start(int maxPlayers, int port)
+        {
+            StartServer(maxPlayers, port);
+        }
+
+        // Leo: turned code at start into a method.
+        private static void StartServer(int maxPlayers, int port)
         {
             MaxPlayers = maxPlayers;
             Port = port;
@@ -30,8 +31,8 @@ namespace Dyson_GPG222_Server
             tcpListener = new TcpListener(IPAddress.Any, Port);
             tcpListener.Start();
             tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
-        }   
-
+        }
+        
         private static void TCPConnectCallback(IAsyncResult result)
         {
             TcpClient client = tcpListener.EndAcceptTcpClient(result);
@@ -49,6 +50,7 @@ namespace Dyson_GPG222_Server
                 }
             }
             Debug.Log(client.Client.RemoteEndPoint + " : Server full");
+            client.Close();
         }
 
         // LEO: New function to HandleClient.
@@ -64,6 +66,7 @@ namespace Dyson_GPG222_Server
                     int bytesRead = stream.EndRead(ar);
                     if (bytesRead <= 0)
                     {
+                        // Client disconnected.
                         clients.Remove(clientId);
                         Debug.LogWarning($"Server.cs: Client {clientId} disconnected.");
                         return;
@@ -72,11 +75,11 @@ namespace Dyson_GPG222_Server
                     byte[] receiveData = new byte[bytesRead];
                     Array.Copy(buffer, receiveData, bytesRead);
                     
-                    // Process it.
+                    // Process received data.
                     ProcessReceivedData(receiveData, clientId);
                     
                     // Continue listening for more data.
-                    stream.BeginRead(buffer, 0, buffer.Length, ar, null);
+                    stream.BeginRead(buffer, 0, buffer.Length, HandleReceiveCallback, new ClientReadState { Client = client, ClientId = clientId, Buffer = buffer });
                 }
                 catch (Exception e)
                 {
@@ -84,6 +87,32 @@ namespace Dyson_GPG222_Server
                     clients.Remove(clientId);
                 }
             }, null);
+        }
+
+        private static void HandleReceiveCallback(IAsyncResult ar)
+        {
+            ClientReadState state = (ClientReadState)ar.AsyncState;
+            try
+            {
+                NetworkStream stream = state.Client.GetStream();
+                int bytesRead = stream.EndRead(ar);
+
+                if (bytesRead <= 0)
+                {
+                    // The client disconnected.
+                    clients.Remove(state.ClientId);
+                    Debug.LogWarning($"Server.cs client: {state.ClientId} disconnected.");
+                    return;
+                }
+                
+                byte[] receiveData = new byte[bytesRead];
+                Array.Copy(state.Buffer, receiveData, bytesRead);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
         }
 
         private static void ProcessReceivedData(byte[] data, int clientId)

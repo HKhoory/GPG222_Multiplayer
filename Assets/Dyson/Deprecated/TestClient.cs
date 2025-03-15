@@ -1,15 +1,12 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using System.Net;
 using System.Net.Sockets;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
-using Unity.Collections.LowLevel.Unsafe;
+using Hamad.Scripts.Rotation;
+using UnityEngine;
 
-namespace Dyson_GPG222_Server
+namespace Dyson.Deprecated
 {
     public class TestClient
     {

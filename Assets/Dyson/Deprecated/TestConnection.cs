@@ -1,9 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using Dyson_GPG222_Server;
 using UnityEngine;
 
-namespace Dyson_GPG222_Server
+namespace Dyson.Deprecated
 {
     public class TestConnection : MonoBehaviour
     {

@@ -43,12 +43,15 @@ namespace Hamad.Scripts.Position
 
             for (int i = 0; i < playerPositionDataListCount; i++)
             {
-
                 //PlayerData pData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64());
                 PlayerData pData = new PlayerData(_binaryReader.ReadString(), _binaryReader.ReadInt32());
-                PlayerPositionData ppData = new PlayerPositionData(pData, _binaryReader.ReadInt64(), _binaryReader.ReadInt64(), _binaryReader.ReadInt64());
+                
+                float xPos = _binaryReader.ReadSingle();
+                float yPos = _binaryReader.ReadSingle();
+                float zPos = _binaryReader.ReadSingle();
+                
+                PlayerPositionData ppData = new PlayerPositionData(pData, xPos, yPos, zPos);
                 PlayerPositionData.Add(ppData);
-
             }
 
             return this;

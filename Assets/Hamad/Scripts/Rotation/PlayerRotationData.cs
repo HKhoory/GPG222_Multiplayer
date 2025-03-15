@@ -1,29 +1,32 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using Hamad;
-using Hamad.Scripts;
 
-public class PlayerRotationData
+namespace Hamad.Scripts.Rotation
 {
-    public PlayerData playerData;
-    public Vector3 pos;
-
-    public float xRot { get; set; }
-    public float yRot { get; set; }
-    public float zRot { get; set; }
-
-    public PlayerRotationData(PlayerData playerData, float xRot, float yRot, float zRot)
+    public class PlayerRotationData
     {
-        this.playerData = playerData;
-        this.xRot = xRot;
-        this.yRot = yRot;
-        this.zRot = zRot;
-    }
+        public PlayerData playerData;
+        public Vector3 rot;
 
-    public PlayerRotationData(PlayerData playerData, Vector3 posIndex)
-    {
-        this.playerData = playerData;
-        this.pos = posIndex;
+        public float xRot { get; set; }
+        public float yRot { get; set; }
+        public float zRot { get; set; }
+
+        public PlayerRotationData(PlayerData playerData, float xRot, float yRot, float zRot)
+        {
+            this.playerData = playerData;
+            this.xRot = xRot;
+            this.yRot = yRot;
+            this.zRot = zRot;
+        }
+
+        public PlayerRotationData(PlayerData playerData, Vector3 rotIndex)
+        {
+            this.playerData = playerData;
+            this.rot = rotIndex;
+            
+            this.xRot = rotIndex.x;
+            this.yRot = rotIndex.y;
+            this.zRot = rotIndex.z;
+        }
     }
 }
