@@ -1,7 +1,6 @@
 using System.Net.Sockets;
-using UnityEngine;
 
-namespace Leonardo.Scripts
+namespace Leonardo.Scripts.ClientRelated
 {
     public class ClientState
     {

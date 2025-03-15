@@ -1,46 +1,50 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq.Expressions;
 using System.Net.Sockets;
-using UnityEngine;
-using Random = UnityEngine.Random;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
 using Hamad.Scripts.Rotation;
 using Leonardo.Scripts.Controller;
-using Unity.VisualScripting;
+using UnityEngine;
+using Random = UnityEngine.Random;
 
 
-namespace Leonardo.Scripts
+namespace Leonardo.Scripts.ClientRelated
 {
+    /// <summary>
+    /// This script handles the client-side networking functionality, connections, instantiation, etc.
+    /// </summary>
     public class Client : MonoBehaviour
     {
-        [Header("- Connection Settings")] [SerializeField]
-        private string ipAddress = "127.0.0.1";
-
-        [SerializeField] private int port = 2121;
-        [SerializeField] private bool connectionOnStart = true;
+        [Header("- Connection Settings")] 
         [SerializeField] private string playerNamePrefix = "Client-Player";
+        [SerializeField] private string ipAddress = "127.0.0.1";
+        [SerializeField] private bool connectionOnStart = true;
+        [SerializeField] private int port = 2121;
 
-        [Header("- Players Settings")] [SerializeField]
-        private GameObject playerPrefab;
+        [Header("- Players Settings")] 
+        [SerializeField] private GameObject playerPrefab;
+        [SerializeField] private Vector3 spawnPosition = new Vector3(0, 1, 0);
 
-        [SerializeField] private Vector3 spawnPosition = new Vector3(0,1,0);
-        
-        [Header("- Test Settings")]
+        [Header("- Test Settings")] 
         [SerializeField] private bool enableTestMovement = true;
         [SerializeField] private float testMovementSpeed = 2f;
         
-        private Dictionary<int, GameObject> playerObjects = new Dictionary<int, GameObject>();
+        public PlayerData localPlayer { get; private set; }
+        public IReadOnlyDictionary<int, GameObject> playerObjects => new Dictionary<int, GameObject>(_playerObjects);
+
         private TcpClient socket;
         private NetworkStream stream;
-        byte[] receiveBuffer;
-        private PlayerData localPlayer;
-        private bool isConnected = false;
+        private Queue<PlayerPositionData> playerInstantiateQueue = new Queue<PlayerPositionData>();
+        private Dictionary<int, GameObject> _playerObjects = new Dictionary<int, GameObject>();
+        private PlayerData playerToSpawn = null;
+        private byte[] receiveBuffer;
         private float nextUpdateTime = 0f;
         private float updateInterval = 0.1f;
+        private bool isConnected = false;
+        private bool shouldSpawnPlayer = false;
+        private object queueLock = new object();
 
         #region Unity Methods
 
@@ -49,71 +53,74 @@ namespace Leonardo.Scripts
             if (connectionOnStart)
             {
                 // Try to connect to server.
-                ConnectToServer($"{playerNamePrefix}{Random.Range(1,9999)}");
+                ConnectToServer($"{playerNamePrefix}{Random.Range(1, 9999)}");
             }
+
+            GameObject dispatchers = new GameObject("MainThreadDispatcher");
+            dispatchers.AddComponent<UnityMainThreadDispatcher>();
         }
 
         private void Update()
         {
-            // Send the position/rotation of players AT THE DEFINED INTERVAL:
-            bool shouldSpawn = false;
-            PlayerData playerData = null;
-
-            lock (this)
+            // Process any queued remote player instantiations.
+            lock (queueLock)
             {
-                if (shouldSpawnPlayer)
+                while (playerInstantiateQueue.Count > 0)
                 {
-                    shouldSpawn = true;
-                    playerData = playerToSpawn;
-                    shouldSpawnPlayer = false;
+                    var playerPos = playerInstantiateQueue.Dequeue();
+                    InstantiatePlayer(playerPos);
                 }
             }
 
-            if (shouldSpawn && playerData != null)
+            // Check if we need to spawn the local player.
+            lock (this)
             {
-                Debug.LogWarning($"Spawning player from main thread.");
-                SpawnLocalPlayer(playerData);
+                if (shouldSpawnPlayer && playerToSpawn != null)
+                {
+                    Debug.LogWarning($"Spawning local player from main thread: {playerToSpawn.name}");
+                    SpawnLocalPlayer(playerToSpawn);
+                    shouldSpawnPlayer = false;
+                    playerToSpawn = null;
+                }
             }
-            
+
+            // Send position updates.
             if (isConnected && Time.time >= nextUpdateTime)
             {
                 nextUpdateTime = Time.time + updateInterval;
-                
-                if (playerObjects.ContainsKey(localPlayer.tag))
+
+                if (localPlayer != null && _playerObjects.ContainsKey(localPlayer.tag))
                 {
-                    SendPosition(playerObjects[localPlayer.tag].transform.position);
-                    SendRotation(playerObjects[localPlayer.tag].transform.eulerAngles);
+                    SendPosition(_playerObjects[localPlayer.tag].transform.position);
+                    SendRotation(_playerObjects[localPlayer.tag].transform.eulerAngles);
+                    Debug.LogWarning($"Sending position update: {_playerObjects[localPlayer.tag].transform.position}");
                 }
             }
-
-            if (enableTestMovement && playerObjects.ContainsKey(localPlayer.tag))
-            {
-                // This is to move the player for testing purposes.
-                Vector3 movement = new Vector3(
-                    Mathf.Sin(Time.time * testMovementSpeed), 
-                    0, 
-                    Mathf.Cos(Time.time * testMovementSpeed)
-                ) * testMovementSpeed * Time.deltaTime;
-            
-                playerObjects[localPlayer.tag].transform.position += movement;
-            }
-
         }
 
         #endregion
 
-        #region Private Methods
-
+        #region Script Specific Methods
+        
+        // TODO: I should delete this.
+        /// <summary>
+        /// Manually connect to the server, needs player name as input.
+        /// </summary>
+        /// <param name="playerName">Player name to be set, if there is no name set a random one will be generated.</param>
         public void ManualConnect(string playerName = null)
         {
             if (playerName == null)
             {
-                playerName = $"{playerNamePrefix}{Random.Range(1,9999)}";
+                playerName = $"{playerNamePrefix}{Random.Range(1, 9999)}";
             }
-            
+
             ConnectToServer(playerName);
         }
-        
+
+        /// <summary>
+        /// Connects to the server with the given username.
+        /// </summary>
+        /// <param name="username">The username to connect with.</param>
         private void ConnectToServer(string username)
         {
             try
@@ -130,9 +137,11 @@ namespace Leonardo.Scripts
                 Debug.LogWarning($"NetworkManager.cs, socket exception: {socketException.Message}");
             }
         }
-
-        private bool shouldSpawnPlayer = false;
-        private PlayerData playerToSpawn = null;
+        
+        /// <summary>
+        /// Callback for when the connection attempt completes.
+        /// </summary>
+        /// <param name="result">The result of the async operation.</param>
         private void ConnectCallback(IAsyncResult result)
         {
             try
@@ -148,7 +157,7 @@ namespace Leonardo.Scripts
                 stream = socket.GetStream();
                 isConnected = true;
                 Debug.LogWarning($"NetworkManger.cs: Client connected to {ipAddress}:{port}.");
-                
+
                 // Start reading from stream.
                 stream.BeginRead(receiveBuffer, 0, receiveBuffer.Length, ReceiveCallback, null);
 
@@ -169,23 +178,32 @@ namespace Leonardo.Scripts
             }
         }
 
+        /// <summary>
+        /// Spawns the LOCAL player.
+        /// </summary>
+        /// <param name="playerData">The player data that is going to be used.</param>
         private void SpawnLocalPlayer(PlayerData playerData)
         {
-            Debug.LogWarning("SPWANING PLAYER!!!!!!!!! HELLOOO");
-    
+            Debug.LogWarning($"SPAWNING LOCAL PLAYER: {playerData.name} with tag {playerData.tag}");
+
             try
             {
-                Vector3 spawnPosition = new Vector3(0, 1, 0);
-                GameObject newPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
-                playerObjects[localPlayer.tag] = newPlayer;
-                
+                Vector3 position = new Vector3(0, 1, 0);
+                GameObject newPlayer = Instantiate(playerPrefab, position, Quaternion.identity);
+                _playerObjects[playerData.tag] = newPlayer;
+
                 var controller = newPlayer.GetComponent<PlayerController>();
                 if (controller != null)
                 {
                     controller.SetLocalplayer(true);
+                    Debug.LogWarning($"Set player {playerData.name} as local player (BLUE)");
                 }
-                
-                Debug.LogWarning($"Local player: {playerData.name} spawned at {spawnPosition}");
+
+                newPlayer.name = $"LocalPlayer_{playerData.name}";
+                Debug.LogWarning($"Local player: {playerData.name} spawned at {position}");
+
+                // Send our position immediately to notify others
+                SendPosition(position);
             }
             catch (Exception e)
             {
@@ -193,6 +211,36 @@ namespace Leonardo.Scripts
             }
         }
 
+        /// <summary>
+        /// Instantiates a remote player.
+        /// </summary>
+        /// <param name="playerPos">The position in which the player is going to be instantiated.</param>
+        private void InstantiatePlayer(PlayerPositionData playerPos)
+        {
+            int playerTag = playerPos.playerData.tag;
+
+            if (!_playerObjects.ContainsKey(playerTag))
+            {
+                Debug.LogWarning($"CREATING REMOTE PLAYER: {playerPos.playerData.name} with tag {playerTag}");
+
+                Vector3 position = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
+                GameObject newPlayer = Instantiate(playerPrefab, position, Quaternion.identity);
+                _playerObjects[playerTag] = newPlayer;
+
+                var controller = newPlayer.GetComponent<PlayerController>();
+                if (controller != null)
+                {
+                    controller.SetLocalplayer(false);
+                }
+
+                newPlayer.name = $"RemotePlayer_{playerPos.playerData.name}";
+            }
+        }
+
+        /// <summary>
+        /// Callback for when the data is received from the server.
+        /// </summary>
+        /// <param name="result">Result of the async operation.</param>
         private void ReceiveCallback(IAsyncResult result)
         {
             try
@@ -220,7 +268,10 @@ namespace Leonardo.Scripts
             }
         }
 
-        // Handles deserializing the packet and running logic depending on the type of packet that it is.
+        /// <summary>
+        /// Handles deserializing the packet and running the logic depending on the type of packet that it is.
+        /// </summary>
+        /// <param name="data">The packet data converted to bytes.</param>
         private void HandlePacket(byte[] data)
         {
             try
@@ -238,14 +289,20 @@ namespace Leonardo.Scripts
 
                     case Packet.PacketType.PlayersPositionData:
                         PlayersPositionDataPacket positionPacket = new PlayersPositionDataPacket().Deserialize(data);
-                        Debug.Log(
-                            $"Client: Received position updates for {positionPacket.PlayerPositionData.Count} players");
+                        Debug.LogWarning(
+                            $"Received position updates for {positionPacket.PlayerPositionData.Count} players from server");
 
                         foreach (var playerPos in positionPacket.PlayerPositionData)
                         {
+                            Debug.LogWarning(
+                                $"Processing position for player: {playerPos.playerData.name} (Tag: {playerPos.playerData.tag})");
+
                             // Skip updates for this client's player.
                             if (playerPos.playerData.tag == localPlayer.tag)
+                            {
+                                Debug.LogWarning($"Skipping own player position update");
                                 continue;
+                            }
 
                             UpdateOrCreatePlayerPosition(playerPos);
                         }
@@ -280,47 +337,78 @@ namespace Leonardo.Scripts
             }
         }
 
+        /// <summary>
+        /// Updates or creates a player based on position data.
+        /// </summary>
+        /// <param name="playerPos">The player position data.</param>
         private void UpdateOrCreatePlayerPosition(PlayerPositionData playerPos)
         {
             int playerTag = playerPos.playerData.tag;
+            Debug.LogWarning(
+                $"UpdateOrCreatePlayerPosition called for player {playerPos.playerData.name} with tag {playerTag}, local player tag is {localPlayer.tag}");
 
-            // If we don't have this player yet, create it.
-            if (!playerObjects.ContainsKey(playerTag))
+            // If we don't have this player yet, queue it for instantiation on the main thread
+            if (!_playerObjects.ContainsKey(playerTag))
             {
-                Vector3 position = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
-                GameObject newPlayer = Instantiate(playerPrefab, position, Quaternion.identity);
-                playerObjects[playerTag] = newPlayer;
-
-                var controller = newPlayer.GetComponent<PlayerController>();
-                if (controller != null)
+                lock (queueLock)
                 {
-                    controller.SetLocalplayer(false);
+                    Debug.LogWarning($"Queueing player {playerPos.playerData.name} for instantiation on main thread");
+                    playerInstantiateQueue.Enqueue(playerPos);
                 }
-                
-                newPlayer.name = $"Player_{playerPos.playerData.name}";
-                Debug.Log($"Created new player: {playerPos.playerData.name} with tag: {playerTag}");
             }
             else
             {
                 // Update existing player position.
+                // This also needs to be queued for the main thread
                 Vector3 newPosition = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
-                playerObjects[playerTag].transform.position = newPosition;
+
+                // Use Unity's main thread dispatcher
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
+                    if (_playerObjects.ContainsKey(playerTag))
+                    {
+                        _playerObjects[playerTag].transform.position = newPosition;
+                        Debug.LogWarning(
+                            $"Updated position for existing player {playerPos.playerData.name} to {newPosition}");
+                    }
+                });
             }
         }
 
+        /// <summary>
+        /// Updates player's rotation.
+        /// </summary>
+        /// <param name="playerRot">The player data of the player to be rotated.</param>
         private void UpdatePlayerRotation(PlayerRotationData playerRot)
         {
             int playerTag = playerRot.playerData.tag;
 
-            // Only update rotation if we have this player
-            if (playerObjects.ContainsKey(playerTag))
+            // Only update rotation if we have this player.
+            if (_playerObjects.ContainsKey(playerTag))
             {
                 Vector3 newRotation = new Vector3(playerRot.xRot, playerRot.yRot, playerRot.zRot);
-                playerObjects[playerTag].transform.rotation = Quaternion.Euler(newRotation);
+
+                // Use the dispatcher to update rotation on main thread.
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
+                    if (_playerObjects.ContainsKey(playerTag))
+                    {
+                        _playerObjects[playerTag].transform.rotation = Quaternion.Euler(newRotation);
+                        Debug.LogWarning($"Updated rotation for player {playerRot.playerData.name} to {newRotation}");
+                    }
+                });
             }
         }
-
-        // --- 'SEND' Methods.
+        #endregion
+        
+        
+        // --- 'SEND' Methods. ---
+        #region Send (public) Methods
+        
+        /// <summary>
+        /// Sends a message to all other connected clients.
+        /// </summary>
+        /// <param name="message">The message that is going to be sent.</param>
         public void SendMessagePacket(string message)
         {
             MessagePacket messagePacket = new MessagePacket(localPlayer, message);
@@ -328,6 +416,10 @@ namespace Leonardo.Scripts
             stream.Write(data, 0, data.Length);
         }
 
+        /// <summary>
+        /// Sends the player position to all other clients in the server.
+        /// </summary>
+        /// <param name="position">The position to be sent.</param>
         public void SendPosition(Vector3 position)
         {
             PlayerPositionData positionData = new PlayerPositionData(
@@ -344,6 +436,10 @@ namespace Leonardo.Scripts
             stream.Write(data, 0, data.Length);
         }
 
+        /// <summary>
+        /// Sends the player rotation to all other clients in the server.
+        /// </summary>
+        /// <param name="rotation">The rotation to be sent</param>
         public void SendRotation(Vector3 rotation)
         {
             PlayerRotationData rotationData = new PlayerRotationData(
@@ -359,7 +455,6 @@ namespace Leonardo.Scripts
             byte[] data = rotationPacket.Serialize();
             stream.Write(data, 0, data.Length);
         }
-
         #endregion
     }
 }

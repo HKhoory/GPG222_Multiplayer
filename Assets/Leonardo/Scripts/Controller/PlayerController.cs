@@ -7,32 +7,105 @@ namespace Leonardo.Scripts.Controller
     /// </summary>
     public class PlayerController : MonoBehaviour
     {
-        [Header("- Movement Settings")]
-        [SerializeField] private float moveSpeed = 5f;
+        [Header("- Movement Settings")] [SerializeField]
+        private float moveSpeed = 5f;
+
         [SerializeField] private float rotationSpeed = 120f;
         [SerializeField] private float jumpForce = 5f;
-        
-        [Header("- Ground Check")]
-        [SerializeField] private Transform groundCheck;
+
+        [Header("- Ground Check")] [SerializeField]
+        private Transform groundCheck;
+
         [SerializeField] private float groundDistance = 0.4f;
         [SerializeField] private LayerMask groundMask;
-        
-        [Header("- References")]
-        [SerializeField] private Rigidbody rb;
-        
-        // Flags for tracking.
-        private bool _isGrounded;
+
+        [Header("- References")] [SerializeField]
+        private Rigidbody rb;
+
         private Vector3 _movement;
         private float _rotation;
+        private bool _isGrounded;
         private bool _isLocalPlayer = true;
-        
+
+        #region Unity Methods
+
         private void Awake()
+        {
+            InitializeComponents();
+        }
+
+        private void Update()
+        {
+            // The local player can only control its assigned GameObject.
+            if (!_isLocalPlayer) return;
+
+            // Check if player is grounded.
+            _isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+
+            HandleInput();
+            HandleJumping();
+
+            // Apply rotation.
+            transform.Rotate(Vector3.up, _rotation * rotationSpeed * Time.deltaTime);
+        }
+
+        private void FixedUpdate()
+        {
+            if (!_isLocalPlayer) return;
+
+            // Apply movement.
+            Vector3 velocity = new Vector3(_movement.x, rb.velocity.y, _movement.z);
+            rb.velocity = velocity;
+        }
+
+        
+        #endregion
+        
+        #region Script Specific Methods
+
+        /// <summary>
+        /// Checks if the player can jump or not.
+        /// </summary>
+        private void HandleJumping()
+        {
+            if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
+            {
+                Jump();
+            }
+        }
+
+        /// <summary>
+        /// Processes input for movement.
+        /// </summary>
+        private void HandleInput()
+        {
+            // Get input
+            float horizontalInput = Input.GetAxisRaw("Horizontal");
+            float verticalInput = Input.GetAxisRaw("Vertical");
+
+            // Calculate movement.
+            _movement = transform.forward * verticalInput + transform.right * horizontalInput;
+            _movement = Vector3.ClampMagnitude(_movement, 1f) * moveSpeed;
+
+            // Rotation input for testing-
+            _rotation = 0;
+            if (Input.GetKey(KeyCode.Q))
+                _rotation = -1;
+            else if (Input.GetKey(KeyCode.E))
+                _rotation = 1;
+        }
+
+        
+        /// <summary>
+        /// Initializes the components of this script.
+        /// </summary>
+        private void InitializeComponents()
         {
             // Get components if not assigned.
             if (rb == null)
                 rb = GetComponent<Rigidbody>();
-                
-            // Create ground check if not assigned.
+
+            // Create ground check if not assigned (DUMMY PROOFING).
             if (groundCheck == null)
             {
                 GameObject check = new GameObject("GroundCheck");
@@ -40,60 +113,26 @@ namespace Leonardo.Scripts.Controller
                 check.transform.localPosition = new Vector3(0, -1f, 0);
                 groundCheck = check.transform;
             }
-            
+
             // Dummy proofing (Im setting the rigidbody rotation freeze)
             if (rb != null)
             {
                 rb.freezeRotation = true; // Prevent rigidbody from rotating the player.
             }
         }
-        
-        private void Update()
-        {
-            if (!_isLocalPlayer) return;
-            
-            // Check if player is grounded.
-            _isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-            
-            // Get input
-            float horizontalInput = Input.GetAxisRaw("Horizontal");
-            float verticalInput = Input.GetAxisRaw("Vertical");
-            
-            // Calculate movement.
-            _movement = transform.forward * verticalInput + transform.right * horizontalInput;
-            _movement = Vector3.ClampMagnitude(_movement, 1f) * moveSpeed;
-            
-            // Handle rotation input.
-            _rotation = 0;
-            if (Input.GetKey(KeyCode.Q))
-                _rotation = -1;
-            else if (Input.GetKey(KeyCode.E))
-                _rotation = 1;
-                
-            // Handle jump.
-            if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
-            {
-                Jump();
-            }
-            
-            // Apply rotation.
-            transform.Rotate(Vector3.up, _rotation * rotationSpeed * Time.deltaTime);
-        }
-        
-        private void FixedUpdate()
-        {
-            if (!_isLocalPlayer) return;
-            
-            // Apply movement.
-            Vector3 velocity = new Vector3(_movement.x, rb.velocity.y, _movement.z);
-            rb.velocity = velocity;
-        }
-        
+
+        /// <summary>
+        /// JUMP!
+        /// </summary>
         private void Jump()
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
 
+        /// <summary>
+        /// Sets weather this player is controlled locally or by the network (aka another client).
+        /// </summary>
+        /// <param name="isLocalPlayer">Is this the local player?</param>
         public void SetLocalplayer(bool isLocalPlayer)
         {
             _isLocalPlayer = isLocalPlayer;
@@ -103,5 +142,7 @@ namespace Leonardo.Scripts.Controller
                 GetComponent<Renderer>().material.color = isLocalPlayer ? Color.blue : Color.red;
             }
         }
+
+        #endregion
     }
 }
