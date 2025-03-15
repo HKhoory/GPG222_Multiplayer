@@ -12,7 +12,7 @@ using Hamad.Scripts.Rotation;
 
 namespace Leonardo.Scripts
 {
-    public class NetworkManager : MonoBehaviour
+    public class Client : MonoBehaviour
     {
         [Header("- Connection Settings")] [SerializeField]
         private string ipAddress = "127.0.0.1";
@@ -43,52 +43,13 @@ namespace Leonardo.Scripts
             if (playerObjects.ContainsKey(localPlayer.tag))
             {
                 SendPosition(playerObjects[localPlayer.tag].transform.position);
+                SendRotation(playerObjects[localPlayer.tag].transform.eulerAngles);
             }
         }
 
         #endregion
 
         #region Private Methods
-
-        /*private byte[] SerializePlayerData(PlayerData playerData)
-        {
-            MemoryStream memoryStream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(memoryStream);
-            {
-                writer.Write(playerData.name);
-                writer.Write(playerData.tag);
-                return memoryStream.ToArray();
-            }
-        }
-
-        private void DeserialzePlayerData(byte[] buffer)
-        {
-            MemoryStream memoryStream = new MemoryStream(buffer);
-            BinaryReader reader = new BinaryReader(memoryStream);
-            {
-                string name = reader.ReadString();
-                int tag = reader.ReadInt32();
-                Vector3 position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                Quaternion rotation = new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
-                    reader.ReadSingle());
-
-                if (!players.ContainsKey(tag))
-                {
-                    players[tag] = new PlayerData(name, tag);
-
-                    // Spawn player in scene.
-                    GameObject newPlayer = Instantiate(playerPrefab, position, rotation);
-
-                    // Save the reference of this player's object in the dictionary for future proofing (maybe we'll need it later in the project).
-                    playerObjects[tag] = newPlayer;
-                    Debug.LogWarning($"New player joined {name}");
-                }
-                else
-                {
-                    
-                }
-            }
-        }*/
 
         private void ConnectToServer(string username)
         {
@@ -127,12 +88,28 @@ namespace Leonardo.Scripts
             var messagePacket = new MessagePacket(localPlayer, "Connected, hi!");
             byte[] data = messagePacket.Serialize();
             stream.Write(data, 0, data.Length);
+
+            // Spawn the player when a connection is made.
+            SpawnLocalPlayer();
+        }
+
+        private void SpawnLocalPlayer()
+        {
+            Vector3 spawnPosition = new Vector3(0, 1, 0);
+            GameObject newPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+            playerObjects[localPlayer.tag] = newPlayer;
+            Debug.LogWarning($"LocalPlayer {localPlayer.name} spawned at {spawnPosition}");
         }
 
         private void ReceiveCallback(IAsyncResult result)
         {
             try
             {
+                if (socket == null || !socket.Connected)
+                {
+                    return;
+                }
+
                 int byteLenght = stream.EndRead(result);
                 if (byteLenght <= 0)
                 {
@@ -143,77 +120,91 @@ namespace Leonardo.Scripts
                 Array.Copy(receiveBuffer, data, byteLenght);
 
                 HandlePacket(data);
-                stream.BeginRead(receiveBuffer,0,receiveBuffer.Length,ReceiveCallback, null);
+                stream.BeginRead(receiveBuffer, 0, receiveBuffer.Length, ReceiveCallback, null);
             }
             catch (Exception e)
             {
                 Debug.LogError($"NetworkManager.cs: Error in ReceiveCallback: {e.Message}");
-                throw;
             }
         }
-        
+
         // Handles deserializing the packet and running logic depending on the type of packet that it is.
         private void HandlePacket(byte[] data)
         {
-            Packet basePacket = new Packet();
-            basePacket.Deserialize(data);
-            
-            switch (basePacket.packetType)
+            try
             {
-                case Packet.PacketType.Message:
-                    MessagePacket messagePacket = new MessagePacket().Deserialize(data);
-                    Debug.Log($"Client: Received message from {messagePacket.playerData.name}: {messagePacket.Message}");
-                    break;
-                
-                case Packet.PacketType.PlayersPositionData:
-                    PlayersPositionDataPacket positionPacket = new PlayersPositionDataPacket().Deserialize(data);
-                    Debug.Log($"Client: Received position updates for {positionPacket.PlayerPositionData.Count} players");
-                    
-                    foreach (var playerPos in positionPacket.PlayerPositionData)
-                    {
-                        // Skip updates for our own player
-                        if (playerPos.playerData.tag == localPlayer.tag)
-                            continue;
-                            
-                        UpdateOrCreatePlayerPosition(playerPos);
-                    }
-                    break;
-                
-                case Packet.PacketType.PlayersRotationData:
-                    PlayersRotationDataPacket rotationPacket = new PlayersRotationDataPacket().Deserialize(data);
-                    Debug.Log($"Client: Received rotation updates for {rotationPacket.PlayerRotationData.Count} players");
-                    
-                    foreach (var playerRot in rotationPacket.PlayerRotationData)
-                    {
-                        // Skip updates for our own player
-                        if (playerRot.playerData.tag == localPlayer.tag)
-                            continue;
-                            
-                        UpdatePlayerRotation(playerRot);
-                    }
-                    break;
-                
-                default:
-                    Debug.Log($"Client: Unknown packet type received: {basePacket.packetType}");
-                    break;
+                Packet basePacket = new Packet();
+                basePacket.Deserialize(data);
+
+                switch (basePacket.packetType)
+                {
+                    case Packet.PacketType.Message:
+                        MessagePacket messagePacket = new MessagePacket().Deserialize(data);
+                        Debug.Log(
+                            $"Client: Received message from {messagePacket.playerData.name}: {messagePacket.Message}");
+                        break;
+
+                    case Packet.PacketType.PlayersPositionData:
+                        PlayersPositionDataPacket positionPacket = new PlayersPositionDataPacket().Deserialize(data);
+                        Debug.Log(
+                            $"Client: Received position updates for {positionPacket.PlayerPositionData.Count} players");
+
+                        foreach (var playerPos in positionPacket.PlayerPositionData)
+                        {
+                            // Skip updates for this client's player.
+                            if (playerPos.playerData.tag == localPlayer.tag)
+                                continue;
+
+                            UpdateOrCreatePlayerPosition(playerPos);
+                        }
+
+                        break;
+
+                    case Packet.PacketType.PlayersRotationData:
+                        PlayersRotationDataPacket rotationPacket = new PlayersRotationDataPacket().Deserialize(data);
+                        Debug.Log(
+                            $"Client: Received rotation updates for {rotationPacket.PlayerRotationData.Count} players");
+
+                        foreach (var playerRot in rotationPacket.PlayerRotationData)
+                        {
+                            // Skip updates for our own player
+                            if (playerRot.playerData.tag == localPlayer.tag)
+                                continue;
+
+                            UpdatePlayerRotation(playerRot);
+                        }
+
+                        break;
+
+                    default:
+                        Debug.Log($"Client: Unknown packet type received: {basePacket.packetType}");
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
             }
         }
-        
+
         private void UpdateOrCreatePlayerPosition(PlayerPositionData playerPos)
         {
             int playerTag = playerPos.playerData.tag;
-            
-            // If we don't have this player yet, create it
+
+            // If we don't have this player yet, create it.
             if (!playerObjects.ContainsKey(playerTag))
             {
                 Vector3 position = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
                 GameObject newPlayer = Instantiate(playerPrefab, position, Quaternion.identity);
                 playerObjects[playerTag] = newPlayer;
+                
+                newPlayer.name = $"Player_{playerPos.playerData.name}";
                 Debug.Log($"Created new player: {playerPos.playerData.name} with tag: {playerTag}");
             }
             else
             {
-                // Update existing player position
+                // Update existing player position.
                 Vector3 newPosition = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
                 playerObjects[playerTag].transform.position = newPosition;
             }
@@ -222,7 +213,7 @@ namespace Leonardo.Scripts
         private void UpdatePlayerRotation(PlayerRotationData playerRot)
         {
             int playerTag = playerRot.playerData.tag;
-            
+
             // Only update rotation if we have this player
             if (playerObjects.ContainsKey(playerTag))
             {
@@ -242,35 +233,35 @@ namespace Leonardo.Scripts
         public void SendPosition(Vector3 position)
         {
             PlayerPositionData positionData = new PlayerPositionData(
-                localPlayer, 
+                localPlayer,
                 position.x,
                 position.y,
                 position.z
             );
-            
-            List<PlayerPositionData> playerPositionList = new List<PlayerPositionData>{positionData};
+
+            List<PlayerPositionData> playerPositionList = new List<PlayerPositionData> { positionData };
 
             PlayersPositionDataPacket positionPacket = new PlayersPositionDataPacket(localPlayer, playerPositionList);
             byte[] data = positionPacket.Serialize();
             stream.Write(data, 0, data.Length);
         }
-        
+
         public void SendRotation(Vector3 rotation)
         {
             PlayerRotationData rotationData = new PlayerRotationData(
-                localPlayer, 
+                localPlayer,
                 rotation.x,
                 rotation.y,
                 rotation.z
             );
-            
-            List<PlayerRotationData> playerRotationList = new List<PlayerRotationData>{rotationData};
+
+            List<PlayerRotationData> playerRotationList = new List<PlayerRotationData> { rotationData };
 
             PlayersRotationDataPacket rotationPacket = new PlayersRotationDataPacket(localPlayer, playerRotationList);
             byte[] data = rotationPacket.Serialize();
             stream.Write(data, 0, data.Length);
         }
-        
+
         #endregion
     }
 }

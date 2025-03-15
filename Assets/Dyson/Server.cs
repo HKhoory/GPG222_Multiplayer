@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Data;
 using UnityEngine;
 using System.Net;
 using System.Net.Sockets;
@@ -6,6 +8,7 @@ using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
 using Hamad.Scripts.Rotation;
+using Leonardo.Scripts;
 
 namespace Dyson_GPG222_Server
 {
@@ -15,10 +18,18 @@ namespace Dyson_GPG222_Server
         public static int Port { get; private set; }
 
         private static TcpListener tcpListener;
+        private static Dictionary<int, ClientHandler> clients = new Dictionary<int, ClientHandler>();
         
         public static void Start(int maxPlayers, int port)
         {
             StartServer(maxPlayers, port);
+            InitializeServerData();
+        }
+
+        private static void InitializeServerData()
+        {
+            clients.Clear();
+            Debug.Log($"Server.cs: Initialized server data.");
         }
 
         // Leo: turned code at start into a method.
@@ -43,55 +54,39 @@ namespace Dyson_GPG222_Server
             // Find an empty slot for the client.
             for (int i = 1; i <= MaxPlayers; i++)
             {
-                if (clients[i].tcp.socket == null)
-                {
-                    clients[i].tcp.Connect(client);
-                    return;
-                }
+                clients[i] = new ClientHandler(i, client);
+                HandleClient(client, i);
+                return;
             }
             Debug.Log(client.Client.RemoteEndPoint + " : Server full");
             client.Close();
         }
 
-        // LEO: New function to HandleClient.
+        // LEO: New function to handle client data.
         private static void HandleClient(TcpClient client, int clientId)
         {
             NetworkStream stream = client.GetStream();
             byte[] buffer = new byte[4096];
             
-            stream.BeginRead(buffer, 0, buffer.Length, ar =>
+            try
             {
-                try
-                {
-                    int bytesRead = stream.EndRead(ar);
-                    if (bytesRead <= 0)
-                    {
-                        // Client disconnected.
-                        clients.Remove(clientId);
-                        Debug.LogWarning($"Server.cs: Client {clientId} disconnected.");
-                        return;
-                    }
-                    
-                    byte[] receiveData = new byte[bytesRead];
-                    Array.Copy(buffer, receiveData, bytesRead);
-                    
-                    // Process received data.
-                    ProcessReceivedData(receiveData, clientId);
-                    
-                    // Continue listening for more data.
-                    stream.BeginRead(buffer, 0, buffer.Length, HandleReceiveCallback, new ClientReadState { Client = client, ClientId = clientId, Buffer = buffer });
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Server.cs: Error reading data from client {clientId}: {e.Message}");
-                    clients.Remove(clientId);
-                }
-            }, null);
+                // Begin reading
+                stream.BeginRead(buffer, 0, buffer.Length, ReceiveCallback, 
+                    new ClientState { 
+                        Client = client, 
+                        ClientId = clientId, 
+                        Buffer = buffer 
+                    });
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Server.cs: Error setting up client handler: {e.Message}");
+            }
         }
 
-        private static void HandleReceiveCallback(IAsyncResult ar)
+        private static void ReceiveCallback(IAsyncResult ar)
         {
-            ClientReadState state = (ClientReadState)ar.AsyncState;
+            ClientState state = (ClientState)ar.AsyncState;
             try
             {
                 NetworkStream stream = state.Client.GetStream();
@@ -100,77 +95,86 @@ namespace Dyson_GPG222_Server
                 if (bytesRead <= 0)
                 {
                     // The client disconnected.
-                    clients.Remove(state.ClientId);
                     Debug.LogWarning($"Server.cs client: {state.ClientId} disconnected.");
+                    clients.Remove(state.ClientId);
                     return;
                 }
                 
-                byte[] receiveData = new byte[bytesRead];
-                Array.Copy(state.Buffer, receiveData, bytesRead);
+                byte[] data = new byte[bytesRead];
+                Array.Copy(state.Buffer, data, bytesRead);
+                ProcessReceivedData(data, state.ClientId);
+                
+                stream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                throw;
+                Debug.LogError($"Server.cs: Error reading data: {e.Message}");
+                if (clients.ContainsKey(state.ClientId))
+                {
+                    clients.Remove(state.ClientId);
+                }
             }
         }
 
         private static void ProcessReceivedData(byte[] data, int clientId)
         {
-            Packet basePacket = new Packet();
-            basePacket.Deserialize(data);
-
-            switch (basePacket.packetType)
+            try
             {
-                case Packet.PacketType.Message:
-                    MessagePacket messagePacket = new MessagePacket().Deserialize(data);
-                    Debug.Log($"Server: Received message from {messagePacket.playerData.name}: {messagePacket.Message}");
-                    Broadcast(data);
-                    break;
+                Packet basePacket = new Packet();
+                basePacket.Deserialize(data);
 
-                case Packet.PacketType.PlayersPositionData:
-                    PlayersPositionDataPacket positionPacket = new PlayersPositionDataPacket().Deserialize(data);
-                    Debug.Log($"Server: Received position updates for {positionPacket.PlayerPositionData.Count} players.");
-                    Broadcast(data);
-                    break;
+                switch (basePacket.packetType)
+                {
+                    case Packet.PacketType.Message:
+                        MessagePacket messagePacket = new MessagePacket().Deserialize(data);
+                        Debug.Log($"Server.cs: Received message from {messagePacket.playerData.name}: {messagePacket.Message}");
+                        Broadcast(data, clientId);
+                        break;
 
-                case Packet.PacketType.PlayersRotationData:
-                    PlayersRotationDataPacket rotationPacket = new PlayersRotationDataPacket().Deserialize(data);
-                    Debug.Log($"Server: Received rotation updates for {rotationPacket.PlayerRotationData.Count} players.");
-                    Broadcast(data);
-                    break;
+                    case Packet.PacketType.PlayersPositionData:
+                        PlayersPositionDataPacket positionPacket = new PlayersPositionDataPacket().Deserialize(data);
+                        Debug.Log($"Server.cs: Received position updates for {positionPacket.PlayerPositionData.Count} players.");
+                        Broadcast(data, clientId);
+                        break;
 
-                default:
-                    Debug.Log($"Server: Unknown packet type received.");
-                    break;
+                    case Packet.PacketType.PlayersRotationData:
+                        PlayersRotationDataPacket rotationPacket = new PlayersRotationDataPacket().Deserialize(data);
+                        Debug.Log($"Server.cs: Received rotation updates for {rotationPacket.PlayerRotationData.Count} players.");
+                        Broadcast(data, clientId);
+                        break;
+
+                    default:
+                        Debug.Log($"Server.cs: Unknown packet type received.");
+                        break;
+                }
             }
+            catch (Exception e)
+            {
+                Debug.LogError($"Server.cs: Error processing data: {e.Message}");
+            }
+
         }
         
         // LEO: I'm adding this function so the server can broadcast to all clients.
-        private static void Broadcast(byte[] data)
+        private static void Broadcast(byte[] data, int senderId)
         {
-            foreach (var client in clients.Values)
+            foreach (var client in clients)
             {
                 try
                 {
-                    if (client.Connected)
+                    // Skip sender.
+                    if (client.Key == senderId) continue;
+
+                    if (client.Value.Socket != null && client.Value.Socket.Connected)
                     {
-                        client.GetStream().Write(data, 0, data.Length);
-                        Debug.Log("Server: Broadcasted data to client.");
+                        NetworkStream stream = client.Value.Socket.GetStream();
+                        stream.Write(data, 0, data.Length);
                     }
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning($"Server: Failed to broadcast data to a client. Error: {e.Message}");
+                    Debug.LogError($"Server.cs: Error broadcasting data: {e.Message}");
                 }
-            }
-        }
-        
-        private static void InitializeServerData()
-        {
-            for (int i = 0; i <= MaxPlayers; i++)
-            {
-                clients.Add(i, new TestClient(i));
             }
         }
     }

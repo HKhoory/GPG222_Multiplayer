@@ -17,7 +17,25 @@ public class RotationPacket : Packet
         zRotation = 0;
     }
 
-
+    // Leo: Added new constructors.
+    public RotationPacket(PlayerData playerData, float xRotation, float yRotation, float zRotation) : base(
+        PacketType.None, playerData)
+    {
+        this.playerData = playerData;
+        this.xRotation = xRotation;
+        this.yRotation = yRotation;
+        this.zRotation = zRotation;
+    }
+        
+    public RotationPacket(PlayerData playerData, Vector3 rotation) : base(
+        PacketType.None, playerData)
+    {
+        this.playerData = playerData;
+        this.xRotation = rotation.x;
+        this.yRotation = rotation.y;
+        this.zRotation = rotation.z;
+    }
+    
     public byte[] Serialize()
     {
         BeginSerialize();
@@ -30,7 +48,6 @@ public class RotationPacket : Packet
     public new RotationPacket Deserialize(byte[] buffer)
     {
         base.Deserialize(buffer);
-        //Position = _binaryReader.ReadInt32();
         xRotation = _binaryReader.ReadSingle();
         yRotation = _binaryReader.ReadSingle();
         zRotation = _binaryReader.ReadSingle();

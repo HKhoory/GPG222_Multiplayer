@@ -1,4 +1,7 @@
 // LEO: Added namespace
+
+using System.Numerics;
+
 namespace Hamad.Scripts.Position
 {
     public class PositionPacket : Packet
@@ -15,6 +18,24 @@ namespace Hamad.Scripts.Position
             zPosition = 0;
         }
     
+        // Leo: Added new constructors.
+        public PositionPacket(PlayerData playerData, float xPosition, float yPosition, float zPosition) : base(
+            PacketType.None, playerData)
+        {
+            this.playerData = playerData;
+            this.xPosition = xPosition;
+            this.yPosition = yPosition;
+            this.zPosition = zPosition;
+        }
+        
+        public PositionPacket(PlayerData playerData, Vector3 position) : base(
+            PacketType.None, playerData)
+        {
+            this.playerData = playerData;
+            this.xPosition = position.X;
+            this.yPosition = position.Y;
+            this.zPosition = position.Z;
+        }
 
         public byte[] Serialize()
         {
