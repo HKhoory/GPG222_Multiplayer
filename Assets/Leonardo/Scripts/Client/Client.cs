@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq.Expressions;
 using System.Net.Sockets;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -8,6 +9,7 @@ using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
 using Hamad.Scripts.Rotation;
+using Leonardo.Scripts.Controller;
 using Unity.VisualScripting;
 
 
@@ -176,6 +178,13 @@ namespace Leonardo.Scripts
                 Vector3 spawnPosition = new Vector3(0, 1, 0);
                 GameObject newPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
                 playerObjects[localPlayer.tag] = newPlayer;
+                
+                var controller = newPlayer.GetComponent<PlayerController>();
+                if (controller != null)
+                {
+                    controller.SetLocalplayer(true);
+                }
+                
                 Debug.LogWarning($"Local player: {playerData.name} spawned at {spawnPosition}");
             }
             catch (Exception e)
@@ -281,6 +290,12 @@ namespace Leonardo.Scripts
                 Vector3 position = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
                 GameObject newPlayer = Instantiate(playerPrefab, position, Quaternion.identity);
                 playerObjects[playerTag] = newPlayer;
+
+                var controller = newPlayer.GetComponent<PlayerController>();
+                if (controller != null)
+                {
+                    controller.SetLocalplayer(false);
+                }
                 
                 newPlayer.name = $"Player_{playerPos.playerData.name}";
                 Debug.Log($"Created new player: {playerPos.playerData.name} with tag: {playerTag}");

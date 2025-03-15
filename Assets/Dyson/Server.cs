@@ -27,7 +27,7 @@ namespace Dyson_GPG222_Server
 
         private static TcpListener tcpListener;
         private static Dictionary<int, ClientHandler> clients = new Dictionary<int, ClientHandler>();
-
+        private static Dictionary<int, PlayerData> connectedPlayers = new Dictionary<int, PlayerData>();
 
         private void Awake()
         {
@@ -120,6 +120,12 @@ namespace Dyson_GPG222_Server
                 {
                     // The client disconnected.
                     Debug.LogWarning($"Server.cs client: {state.ClientId} disconnected.");
+
+                    if (connectedPlayers.ContainsKey(state.ClientId))
+                    {
+                        connectedPlayers.Remove(state.ClientId);
+                    }
+                    
                     clients.Remove(state.ClientId);
                     return;
                 }
@@ -152,6 +158,16 @@ namespace Dyson_GPG222_Server
                     case Packet.PacketType.Message:
                         MessagePacket messagePacket = new MessagePacket().Deserialize(data);
                         Debug.Log($"Server.cs: Received message from {messagePacket.playerData.name}: {messagePacket.Message}");
+                
+                        // Store this player's data when they first connect THIS IS FOR TESTING PURPOSES, THIS SHOULD BE CHANGED LATER TO NOT BE TOO SPECIFIC.
+                        if (messagePacket.Message == "Connected, hi!" && !connectedPlayers.ContainsKey(clientId))
+                        {
+                            connectedPlayers[clientId] = messagePacket.playerData;
+                    
+                            // Send information about all existing players to this new client
+                            SendAllPlayersInfo(clientId);
+                        }
+                
                         Broadcast(data, clientId);
                         break;
 
@@ -177,6 +193,56 @@ namespace Dyson_GPG222_Server
                 Debug.LogError($"Server.cs: Error processing data: {e.Message}");
             }
 
+        }
+
+        private static void SendAllPlayersInfo(int newClientId)
+        {
+            // Don't send anything if its the first one since there is no one to receive.
+            if (connectedPlayers.Count <= 1)
+            {
+                return;
+            }
+            
+            List<PlayerPositionData> allPlayersPosition = new List<PlayerPositionData>();
+
+            foreach (var player in connectedPlayers)
+            {
+                if (player.Key == newClientId)
+                {
+                    continue;
+                }
+                
+                // This is a default position that is going to be updated later by the client.
+                PlayerPositionData playerPositionData = new PlayerPositionData(
+                    player.Value, 0, 1, 0);
+                
+                allPlayersPosition.Add(playerPositionData); 
+            }
+
+            if (allPlayersPosition.Count > 0)
+            {
+                // Create a packet with the information of all the positions of the players.
+                PlayersPositionDataPacket positionDataPacket = new PlayersPositionDataPacket(connectedPlayers[newClientId], allPlayersPosition);
+
+                byte[] data = positionDataPacket.Serialize();
+                
+                // Get client's socket:
+                if (clients.ContainsKey(newClientId) && clients[newClientId].Socket != null &&
+                    clients[newClientId].Socket.Connected)
+                {
+                    try
+                    {
+                        NetworkStream stream = clients[newClientId].Socket.GetStream();
+                        stream.Write(data, 0, data.Length);
+                        Debug.Log($"Server.cs: Sending data about {allPlayersPosition.Count} players to {newClientId}");
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Server.cs: Error sending data about {allPlayersPosition.Count} players: {e.Message}");
+                    }
+                }
+            }
+            
         }
         
         // LEO: I'm adding this function so the server can broadcast to all clients.

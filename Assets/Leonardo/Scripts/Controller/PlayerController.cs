@@ -93,5 +93,15 @@ namespace Leonardo.Scripts.Controller
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
+
+        public void SetLocalplayer(bool isLocalPlayer)
+        {
+            _isLocalPlayer = isLocalPlayer;
+
+            if (GetComponent<Renderer>() != null)
+            {
+                GetComponent<Renderer>().material.color = isLocalPlayer ? Color.blue : Color.red;
+            }
+        }
     }
 }
