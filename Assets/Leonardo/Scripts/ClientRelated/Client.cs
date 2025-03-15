@@ -9,7 +9,6 @@ using Leonardo.Scripts.Controller;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-
 namespace Leonardo.Scripts.ClientRelated
 {
     /// <summary>
@@ -30,6 +29,10 @@ namespace Leonardo.Scripts.ClientRelated
         [Header("- Test Settings")] 
         [SerializeField] private bool enableTestMovement = true;
         [SerializeField] private float testMovementSpeed = 2f;
+
+        [Header("- Network Settings")]
+        [SerializeField] private float updateInterval = 0.1f;
+        [SerializeField] private int receiveBufferSize = 4096;
         
         public PlayerData localPlayer { get; private set; }
         public IReadOnlyDictionary<int, GameObject> playerObjects => new Dictionary<int, GameObject>(_playerObjects);
@@ -41,7 +44,6 @@ namespace Leonardo.Scripts.ClientRelated
         private PlayerData playerToSpawn = null;
         private byte[] receiveBuffer;
         private float nextUpdateTime = 0f;
-        private float updateInterval = 0.1f;
         private bool isConnected = false;
         private bool shouldSpawnPlayer = false;
         private object queueLock = new object();
@@ -55,14 +57,36 @@ namespace Leonardo.Scripts.ClientRelated
                 // Try to connect to server.
                 ConnectToServer($"{playerNamePrefix}{Random.Range(1, 9999)}");
             }
-
-            GameObject dispatchers = new GameObject("MainThreadDispatcher");
-            dispatchers.AddComponent<UnityMainThreadDispatcher>();
+            
+            // "Queuer" singleton check.
+            if (FindObjectOfType<UnityMainThreadDispatcher>() == null)
+            {
+                GameObject dispatchers = new GameObject("MainThreadDispatcher");
+                dispatchers.AddComponent<UnityMainThreadDispatcher>();
+            }
         }
 
         private void Update()
         {
             // Process any queued remote player instantiations.
+            ProcessQueuedPlayers();   
+
+            // Check if we need to spawn the local player.
+            CheckLocalPlayerSpawn();
+
+            // Send position updates.
+            SentPositionUpdates();
+        }
+        
+        #endregion
+
+        #region Script Specific Methods
+
+        /// <summary>
+        /// Processes queued player instantiations on the main thread.
+        /// </summary>
+        private void ProcessQueuedPlayers()
+        {
             lock (queueLock)
             {
                 while (playerInstantiateQueue.Count > 0)
@@ -71,8 +95,13 @@ namespace Leonardo.Scripts.ClientRelated
                     InstantiatePlayer(playerPos);
                 }
             }
+        }
 
-            // Check if we need to spawn the local player.
+        /// <summary>
+        /// Checks if the local player needs to be spawned.
+        /// </summary>
+        private void CheckLocalPlayerSpawn()
+        {
             lock (this)
             {
                 if (shouldSpawnPlayer && playerToSpawn != null)
@@ -83,8 +112,13 @@ namespace Leonardo.Scripts.ClientRelated
                     playerToSpawn = null;
                 }
             }
-
-            // Send position updates.
+        }
+        
+        /// <summary>
+        /// Sends updates on position and rotation on intervals to not "clog" the network with data.
+        /// </summary>
+        private void SentPositionUpdates()
+        {
             if (isConnected && Time.time >= nextUpdateTime)
             {
                 nextUpdateTime = Time.time + updateInterval;
@@ -96,25 +130,6 @@ namespace Leonardo.Scripts.ClientRelated
                     Debug.LogWarning($"Sending position update: {_playerObjects[localPlayer.tag].transform.position}");
                 }
             }
-        }
-
-        #endregion
-
-        #region Script Specific Methods
-        
-        // TODO: I should delete this.
-        /// <summary>
-        /// Manually connect to the server, needs player name as input.
-        /// </summary>
-        /// <param name="playerName">Player name to be set, if there is no name set a random one will be generated.</param>
-        public void ManualConnect(string playerName = null)
-        {
-            if (playerName == null)
-            {
-                playerName = $"{playerNamePrefix}{Random.Range(1, 9999)}";
-            }
-
-            ConnectToServer(playerName);
         }
 
         /// <summary>
@@ -401,8 +416,6 @@ namespace Leonardo.Scripts.ClientRelated
         }
         #endregion
         
-        
-        // --- 'SEND' Methods. ---
         #region Send (public) Methods
         
         /// <summary>

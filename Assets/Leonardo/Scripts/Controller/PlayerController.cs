@@ -117,6 +117,12 @@ namespace Leonardo.Scripts.Controller
             // Dummy proofing (Im setting the rigidbody rotation freeze)
             if (rb != null)
             {
+                // I added this because it looks better. To correct all stutters when players move we just need to lerp the two positions.
+                // But I kinda like the animation look it currently has.
+                rb.isKinematic = !_isLocalPlayer;
+                
+                rb.useGravity = _isLocalPlayer;
+                
                 rb.freezeRotation = true; // Prevent rigidbody from rotating the player.
             }
         }
