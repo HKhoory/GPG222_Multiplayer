@@ -18,39 +18,81 @@ namespace Leonardo.Scripts
         private string ipAddress = "127.0.0.1";
 
         [SerializeField] private int port = 2121;
+        [SerializeField] private bool connectionOnStart = true;
+        [SerializeField] private string playerNamePrefix = "Client-Player";
 
         [Header("- Players Settings")] [SerializeField]
         private GameObject playerPrefab;
 
+        [SerializeField] private Vector3 spawnPosition = new Vector3(0,1,0);
+        
+        [Header("- Test Settings")]
+        [SerializeField] private bool enableTestMovement = true;
+        [SerializeField] private float testMovementSpeed = 2f;
+        
         private Dictionary<int, GameObject> playerObjects = new Dictionary<int, GameObject>();
-
         private TcpClient socket;
         private NetworkStream stream;
         byte[] receiveBuffer;
         private PlayerData localPlayer;
+        private bool isConnected = false;
+        private float nextUpdateTime = 0f;
+        private float updateInterval = 0.1f;
 
         #region Unity Methods
 
         private void Start()
         {
-            // Try to connect to server.
-            ConnectToServer("Player" + Random.Range(1, 9999));
+            if (connectionOnStart)
+            {
+                // Try to connect to server.
+                ConnectToServer($"{playerNamePrefix}{Random.Range(1,9999)}");
+            }
         }
 
         private void Update()
         {
-            // Send the position of players:
-            if (playerObjects.ContainsKey(localPlayer.tag))
+            // Send the position/rotation of players AT THE DEFINED INTERVAL:
+
+            if (isConnected && Time.time >= nextUpdateTime)
             {
-                SendPosition(playerObjects[localPlayer.tag].transform.position);
-                SendRotation(playerObjects[localPlayer.tag].transform.eulerAngles);
+                nextUpdateTime = Time.time + updateInterval;
+                
+                if (playerObjects.ContainsKey(localPlayer.tag))
+                {
+                    SendPosition(playerObjects[localPlayer.tag].transform.position);
+                    SendRotation(playerObjects[localPlayer.tag].transform.eulerAngles);
+                }
             }
+
+            if (enableTestMovement && playerObjects.ContainsKey(localPlayer.tag))
+            {
+                // This is to move the player for testing purposes.
+                Vector3 movement = new Vector3(
+                    Mathf.Sin(Time.time * testMovementSpeed), 
+                    0, 
+                    Mathf.Cos(Time.time * testMovementSpeed)
+                ) * testMovementSpeed * Time.deltaTime;
+            
+                playerObjects[localPlayer.tag].transform.position += movement;
+            }
+
         }
 
         #endregion
 
         #region Private Methods
 
+        public void ManualConnect(string playerName = null)
+        {
+            if (playerName == null)
+            {
+                playerName = $"{playerNamePrefix}{Random.Range(1,9999)}";
+            }
+            
+            ConnectToServer(playerName);
+        }
+        
         private void ConnectToServer(string username)
         {
             try

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Leonardo.Scripts
 {
-    public class ClientHandler : MonoBehaviour
+    public class ClientHandler
     {
         public int Id {get; private set;}
         public TcpClient Socket {get; private set;}

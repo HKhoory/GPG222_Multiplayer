@@ -1,9 +1,10 @@
-using System;
+    using System;
 using System.Collections.Generic;
 using System.Data;
 using UnityEngine;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
@@ -14,18 +15,41 @@ namespace Dyson_GPG222_Server
 {
     public class Server : MonoBehaviour
     {
-        public static int MaxPlayers { get; private set; }
-        public static int Port { get; private set; }
+        // Leo: Added serializable fields so some things can be tweaked in the inspector.
+        [Header("- Server Configuration")]
+        [SerializeField] private int maxPlayers = 4;
+        [SerializeField] private int port = 2121;
+        [SerializeField] private bool startServerOnAwake = true;
+
+        private static Server instance;
+        private static int MaxPlayers;
+        private static int Port;
 
         private static TcpListener tcpListener;
         private static Dictionary<int, ClientHandler> clients = new Dictionary<int, ClientHandler>();
-        
-        public static void Start(int maxPlayers, int port)
+
+
+        private void Awake()
+        {
+            instance = this;
+        }
+
+        public  void Start()
+        {
+            if (startServerOnAwake)
+            {
+                StartServer(maxPlayers, port);
+                InitializeServerData();
+            }
+        }
+
+        // Leo: in case someone wants to start the server manually.
+        public void StartServer()
         {
             StartServer(maxPlayers, port);
             InitializeServerData();
         }
-
+        
         private static void InitializeServerData()
         {
             clients.Clear();
@@ -70,7 +94,7 @@ namespace Dyson_GPG222_Server
             
             try
             {
-                // Begin reading
+                // Begin reading.
                 stream.BeginRead(buffer, 0, buffer.Length, ReceiveCallback, 
                     new ClientState { 
                         Client = client, 
