@@ -8,6 +8,7 @@ using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
 using Hamad.Scripts.Rotation;
+using Unity.VisualScripting;
 
 
 namespace Leonardo.Scripts
@@ -53,7 +54,25 @@ namespace Leonardo.Scripts
         private void Update()
         {
             // Send the position/rotation of players AT THE DEFINED INTERVAL:
+            bool shouldSpawn = false;
+            PlayerData playerData = null;
 
+            lock (this)
+            {
+                if (shouldSpawnPlayer)
+                {
+                    shouldSpawn = true;
+                    playerData = playerToSpawn;
+                    shouldSpawnPlayer = false;
+                }
+            }
+
+            if (shouldSpawn && playerData != null)
+            {
+                Debug.LogWarning($"Spawning player from main thread.");
+                SpawnLocalPlayer(playerData);
+            }
+            
             if (isConnected && Time.time >= nextUpdateTime)
             {
                 nextUpdateTime = Time.time + updateInterval;
@@ -110,37 +129,59 @@ namespace Leonardo.Scripts
             }
         }
 
+        private bool shouldSpawnPlayer = false;
+        private PlayerData playerToSpawn = null;
         private void ConnectCallback(IAsyncResult result)
         {
-            socket.EndConnect(result);
-
-            if (!socket.Connected)
+            try
             {
-                Debug.LogError($"NetworkManger.cs: Client failed to connect.");
-                return;
+                socket.EndConnect(result);
+
+                if (!socket.Connected)
+                {
+                    Debug.LogError($"NetworkManger.cs: Client failed to connect.");
+                    return;
+                }
+
+                stream = socket.GetStream();
+                isConnected = true;
+                Debug.LogWarning($"NetworkManger.cs: Client connected to {ipAddress}:{port}.");
+                
+                // Start reading from stream.
+                stream.BeginRead(receiveBuffer, 0, receiveBuffer.Length, ReceiveCallback, null);
+
+                // This is to test and send a Hello package to each person at first.
+                var messagePacket = new MessagePacket(localPlayer, "Connected, hi!");
+                byte[] data = messagePacket.Serialize();
+                stream.Write(data, 0, data.Length);
+
+                lock (this)
+                {
+                    shouldSpawnPlayer = true;
+                    playerToSpawn = localPlayer;
+                }
             }
-
-            stream = socket.GetStream();
-            Debug.LogWarning($"NetworkManger.cs: Client connected to {ipAddress}:{port}.");
-
-            // Here start reading stuff since client connected.
-            stream.BeginRead(receiveBuffer, 0, receiveBuffer.Length, ReceiveCallback, null);
-
-            // This is to test and send a Hello package to each person at first.
-            var messagePacket = new MessagePacket(localPlayer, "Connected, hi!");
-            byte[] data = messagePacket.Serialize();
-            stream.Write(data, 0, data.Length);
-
-            // Spawn the player when a connection is made.
-            SpawnLocalPlayer();
+            catch (Exception e)
+            {
+                Debug.LogWarning(e.Message);
+            }
         }
 
-        private void SpawnLocalPlayer()
+        private void SpawnLocalPlayer(PlayerData playerData)
         {
-            Vector3 spawnPosition = new Vector3(0, 1, 0);
-            GameObject newPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
-            playerObjects[localPlayer.tag] = newPlayer;
-            Debug.LogWarning($"LocalPlayer {localPlayer.name} spawned at {spawnPosition}");
+            Debug.LogWarning("SPWANING PLAYER!!!!!!!!! HELLOOO");
+    
+            try
+            {
+                Vector3 spawnPosition = new Vector3(0, 1, 0);
+                GameObject newPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+                playerObjects[localPlayer.tag] = newPlayer;
+                Debug.LogWarning($"Local player: {playerData.name} spawned at {spawnPosition}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error spawning player: {e.Message}\n{e.StackTrace}");
+            }
         }
 
         private void ReceiveCallback(IAsyncResult result)
@@ -265,7 +306,7 @@ namespace Leonardo.Scripts
         }
 
         // --- 'SEND' Methods.
-        public void SendMessage(string message)
+        public void SendMessagePacket(string message)
         {
             MessagePacket messagePacket = new MessagePacket(localPlayer, message);
             byte[] data = messagePacket.Serialize();
