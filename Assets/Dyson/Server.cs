@@ -56,6 +56,8 @@ namespace Dyson_GPG222_Server
         }
 
         // Leo: turned code at start into a method.
+       
+       // Function that starts the server and wait for clients
         private static void StartServer(int maxPlayers, int port)
         {
             MaxPlayers = maxPlayers;
