@@ -98,11 +98,11 @@ namespace Leonardo.Scripts.Player
         
         public void HandlePushEvent(int playerTag, Vector3 force, string effectName)
         {
-            Debug.Log($"PlayerManager.cs: Received push event for player {playerTag}, local player is {_localPlayerData.tag}");
+            //Debug.Log($"PlayerManager.cs: Received push event for player {playerTag}, local player is {_localPlayerData.tag}");
     
             if (playerTag == _localPlayerData.tag)
             {
-                Debug.Log($"PlayerManager.cs: Push is for local player, applying force {force}");
+                //Debug.Log($"PlayerManager.cs: Push is for local player, applying force {force}");
                 GameObject localPlayer = GetLocalPlayerObject();
                 if (localPlayer != null)
                 {
@@ -113,12 +113,12 @@ namespace Leonardo.Scripts.Player
                     }
                     else
                     {
-                        Debug.LogError("PlayerManager.cs: Local player has no PlayerController component");
+                        //Debug.LogError("PlayerManager.cs: Local player has no PlayerController component");
                     }
                 }
                 else
                 {
-                    Debug.LogError("PlayerManager.cs: Could not find local player object");
+                    //Debug.LogError("PlayerManager.cs: Could not find local player object");
                 }
             }
     
