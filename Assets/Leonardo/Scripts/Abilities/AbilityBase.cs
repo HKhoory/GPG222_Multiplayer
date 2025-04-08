@@ -1,3 +1,4 @@
+using Leonardo.Scripts.Effects;
 using UnityEngine;
 
 namespace Leonardo.Scripts.Abilities
@@ -10,7 +11,7 @@ namespace Leonardo.Scripts.Abilities
         [SerializeField] protected string abilityDescription = "";
         
         [Header("- Visual Feedback")]
-        [SerializeField] protected GameObject effectPrefab;
+        [SerializeField] protected string effectName;
         
         protected bool isOnCooldown;
         protected float cooldownRemaining;
@@ -79,6 +80,14 @@ namespace Leonardo.Scripts.Abilities
             }
         }
 
+        protected void PlayEffect(Vector3 position, Quaternion rotation)
+        {
+            if (!string.IsNullOrEmpty(effectName) && EffectManager.Instance != null)
+            {
+                EffectManager.Instance.PlayEffect(effectName, position, rotation);
+            }
+        }
+        
         /// <summary>
         /// This is going to be called when the cooldown is completed, and we can add stuff for the actual ability in its corresponding script.
         /// </summary>

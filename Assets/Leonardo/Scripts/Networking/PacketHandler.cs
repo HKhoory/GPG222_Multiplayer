@@ -13,7 +13,7 @@ namespace Leonardo.Scripts.Networking
         public event Action<string, string> OnMessageReceived;
         public event Action<PlayerPositionData> OnPositionReceived;
         public event Action OnPingResponseReceived;
-        public event Action<int, Vector3> OnPushEventReceived; 
+        public event Action<int, Vector3, string> OnPushEventReceived;
         
         private PlayerData _localPlayerData;
         
@@ -87,12 +87,12 @@ namespace Leonardo.Scripts.Networking
         {
             PushEventPacket pushPacket = new PushEventPacket().Deserialize(data);
             Vector3 force = new Vector3(pushPacket.ForceX, pushPacket.ForceY, pushPacket.ForceZ);
-            OnPushEventReceived?.Invoke(pushPacket.TargetPlayerTag, force);
+            OnPushEventReceived?.Invoke(pushPacket.TargetPlayerTag, force, pushPacket.EffectName);
         }
-        
-        public byte[] CreatePushEventPacket(int targetPlayerTag, Vector3 force)
+
+        public byte[] CreatePushEventPacket(int targetPlayerTag, Vector3 force, string effectName)
         {
-            PushEventPacket pushPacket = new PushEventPacket(_localPlayerData, targetPlayerTag, force);
+            PushEventPacket pushPacket = new PushEventPacket(_localPlayerData, targetPlayerTag, force, effectName);
             return pushPacket.Serialize();
         }
         

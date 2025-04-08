@@ -9,19 +9,21 @@ namespace Leonardo.Scripts.Packets
         public float ForceX { get; private set; }
         public float ForceY { get; private set; }
         public float ForceZ { get; private set; }
+        public string EffectName { get; private set; }
 
         public PushEventPacket() : base(PacketType.PushEvent, null)
         {
         }
 
-        public PushEventPacket(PlayerData playerData, int targetPlayerTag, Vector3 force) 
+        public PushEventPacket(PlayerData playerData, int targetPlayerTag, Vector3 force, string effectName) 
             : base(PacketType.PushEvent, playerData)
         {
             this.playerData = playerData;
-            this.TargetPlayerTag = targetPlayerTag;
-            this.ForceX = force.x;
-            this.ForceY = force.y;
-            this.ForceZ = force.z;
+            TargetPlayerTag = targetPlayerTag;
+            ForceX = force.x;
+            ForceY = force.y;
+            ForceZ = force.z;
+            EffectName = effectName ?? string.Empty;
         }
 
         public byte[] Serialize()
@@ -31,9 +33,10 @@ namespace Leonardo.Scripts.Packets
             _binaryWriter.Write(ForceX);
             _binaryWriter.Write(ForceY);
             _binaryWriter.Write(ForceZ);
+            _binaryWriter.Write(EffectName);
             return EndSerialize();
         }
-
+    
         public new PushEventPacket Deserialize(byte[] buffer)
         {
             base.Deserialize(buffer);
@@ -41,6 +44,7 @@ namespace Leonardo.Scripts.Packets
             ForceX = _binaryReader.ReadSingle();
             ForceY = _binaryReader.ReadSingle();
             ForceZ = _binaryReader.ReadSingle();
+            EffectName = _binaryReader.ReadString();
             return this;
         }
     }

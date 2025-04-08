@@ -111,11 +111,11 @@ namespace Leonardo.Scripts.ClientRelated
             _networkConnection.SendData(data);
         }
         
-        public void SendPushEvent(int targetPlayerTag, Vector3 force)
+        public void SendPushEvent(int targetPlayerTag, Vector3 force, string effectName)
         {
             if (!IsConnected) return;
     
-            byte[] data = _packetHandler.CreatePushEventPacket(targetPlayerTag, force);
+            byte[] data = _packetHandler.CreatePushEventPacket(targetPlayerTag, force, effectName);
             _networkConnection.SendData(data);
         }
         

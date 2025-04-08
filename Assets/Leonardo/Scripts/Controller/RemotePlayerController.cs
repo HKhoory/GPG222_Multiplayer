@@ -14,6 +14,10 @@ namespace Leonardo.Scripts.Controller
         // Minimum movement to consider for ROTATION.
         [SerializeField] private float minimumMovementThreshold = 0.05f;
         
+        // "If you see something assigned to -1 you know something is wrong" - Mustafa.
+        [SerializeField] private int playerTag = -1;
+        public int PlayerTag { get { return playerTag; } }
+        
         private Vector3 _targetPosition;
         private Vector3 _previousPosition;
         private bool _hasTarget;
@@ -84,6 +88,15 @@ namespace Leonardo.Scripts.Controller
                     transform.rotation = Quaternion.LookRotation(movementVector.normalized);
                 }
             }
+        }
+        
+        /// <summary>
+        /// Sets the player tag for this remote player.
+        /// </summary>
+        /// <param name="tag">The player's network tag.</param>
+        public void SetPlayerTag(int tag)
+        {
+            playerTag = tag;
         }
     }
 }

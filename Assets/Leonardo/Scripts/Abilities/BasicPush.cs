@@ -41,7 +41,7 @@ namespace Leonardo.Scripts.Abilities
                 // Check if this is a remote player.
                 RemotePlayerController remotePlayer = collider.GetComponent<RemotePlayerController>();
 
-                if (remotePlayer != null)
+                if (remotePlayer == null)
                 {
                     continue;
                 }
@@ -58,14 +58,6 @@ namespace Leonardo.Scripts.Abilities
                 }
             }
 
-
-            // Visual effect.
-            if (effectPrefab != null)
-            {
-                GameObject effect = Instantiate(effectPrefab, playerTransform.position, playerTransform.rotation);
-                Destroy(effect, 2f);
-            }
-
             return true;
         }
 
@@ -78,7 +70,6 @@ namespace Leonardo.Scripts.Abilities
                 return;
             }
 
-            // Calculate push direction.
             Vector3 pushDirection;
             if (useWorldSpace)
             {
@@ -89,33 +80,30 @@ namespace Leonardo.Scripts.Abilities
                 pushDirection = (targetCollider.transform.position - playerTransform.position).normalized;
             }
 
-            // This is to add some upwards force cause it makes it more chaotic and fun.
+            // Add upward force to make it chaotic and fun.
             pushDirection += Vector3.up * upwardForce;
             pushDirection.Normalize();
 
             Vector3 finalForce = pushDirection * pushForce;
             targetRigidbody.AddForce(finalForce, ForceMode.Impulse);
 
-            // SEND THROUGH NETWORK.
-            PlayerController targetPlayerController = targetCollider.GetComponent<PlayerController>();
+            // SEND TO NETWORK.
             RemotePlayerController remotePlayerController = targetCollider.GetComponent<RemotePlayerController>();
 
             if (remotePlayerController != null)
             {
-                int targetPlayerTag = -1;
+                int targetPlayerTag = remotePlayerController.PlayerTag;
 
                 NetworkClient networkClient = FindObjectOfType<NetworkClient>();
-                if (networkClient != null)
+                if (networkClient != null && targetPlayerTag != -1)
                 {
-                    string name = targetCollider.gameObject.name;
-
-                    // Just found out this exists btw.
-                    if (name.StartsWith("RemotePlayer_"))
-                    {
-
-                        // Send the push event
-                        networkClient.SendPushEvent(targetPlayerTag, finalForce);
-                    }
+                    networkClient.SendPushEvent(targetPlayerTag, finalForce, effectName);
+                    Debug.Log($"BasicPush.cs: Sent network push event for player with tag {targetPlayerTag}.");
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        $"BasicPush.cs: Could not send network push event - NetworkClient or player tag not found.");
                 }
             }
 

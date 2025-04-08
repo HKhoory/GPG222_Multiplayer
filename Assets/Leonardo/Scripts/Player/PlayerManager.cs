@@ -1,12 +1,14 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Hamad.Scripts;
 using Hamad.Scripts.Position;
 using Leonardo.Scripts.Controller;
+using Leonardo.Scripts.Effects;
 
 namespace Leonardo.Scripts.Player
 {
-    public class PlayerManager
+    public class PlayerManager : MonoBehaviour
     {
         private GameObject _playerPrefab;
         private Dictionary<int, GameObject> _playerObjects = new Dictionary<int, GameObject>();
@@ -57,19 +59,24 @@ namespace Leonardo.Scripts.Player
         {
             int playerTag = playerPos.playerData.tag;
             Vector3 position = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
-            
+    
             GameObject newPlayer = Object.Instantiate(_playerPrefab, position, Quaternion.identity);
             _playerObjects[playerTag] = newPlayer;
-            
+    
             var controller = newPlayer.GetComponent<PlayerController>();
             if (controller != null)
             {
                 controller.SetLocalplayer(false);
             }
-            
-            newPlayer.AddComponent<RemotePlayerController>();
+    
+            var remoteController = newPlayer.AddComponent<RemotePlayerController>();
+            if (remoteController != null)
+            {
+                remoteController.SetPlayerTag(playerTag);
+            }
+    
             newPlayer.name = $"PlayerManager.cs: RemotePlayer_{playerPos.playerData.name}";
-            
+    
             Debug.LogWarning($"PlayerManager.cs: Created remote player: {playerPos.playerData.name} with tag {playerTag}");
         }
         
@@ -89,21 +96,63 @@ namespace Leonardo.Scripts.Player
             }
         }
         
-        public void ApplyPushToPlayer(int playerTag, Vector3 force)
+        public void ApplyPushToPlayer(int playerTag, Vector3 force, string effectName)
         {
             if (!_playerObjects.ContainsKey(playerTag))
             {
                 Debug.LogWarning($"PlayerManager.cs: Cannot push player {playerTag}, not found.");
                 return;
             }
-    
+
             GameObject playerObject = _playerObjects[playerTag];
-            Rigidbody rb = playerObject.GetComponent<Rigidbody>();
-    
-            if (rb != null)
+            RemotePlayerController remoteController = playerObject.GetComponent<RemotePlayerController>();
+
+            if (remoteController != null)
             {
-                Debug.Log($"PlayerManager.cs: Applying push force {force} to player {playerTag}.");
-                rb.AddForce(force, ForceMode.Impulse);
+                // Play effect if needed
+                if (!string.IsNullOrEmpty(effectName) && EffectManager.Instance != null)
+                {
+                    EffectManager.Instance.PlayEffect(effectName, playerObject.transform.position, playerObject.transform.rotation);
+                }
+        
+                // Apply the push using our simulated physics
+                StartCoroutine(SimulatePushTrajectory(remoteController, force));
+        
+                Debug.Log($"PlayerManager.cs: Applying simulated push to player {playerTag} with force {force}.");
+            }
+        }
+        
+        private IEnumerator SimulatePushTrajectory(RemotePlayerController controller, Vector3 force)
+        {
+            Vector3 startPosition = controller.transform.position;
+            Vector3 velocity = force / 10f; // Scale down force to get a reasonable velocity
+            Vector3 currentPosition = startPosition;
+            float gravity = 9.8f;
+            float drag = 0.5f;
+    
+            // Simulate physics for several frames to create a trajectory
+            for (int i = 0; i < 15; i++) // 15 steps of simulation
+            {
+                // Apply gravity to vertical velocity
+                velocity.y -= gravity * Time.fixedDeltaTime;
+        
+                // Apply drag to slow down movement over time
+                velocity *= (1f - drag * Time.fixedDeltaTime);
+        
+                // Calculate new position
+                currentPosition += velocity * Time.fixedDeltaTime;
+        
+                // Don't go below ground level (simple ground check)
+                if (currentPosition.y < 0.5f)
+                {
+                    currentPosition.y = 0.5f;
+                    velocity.y = Mathf.Abs(velocity.y) * 0.6f; // Bounce with reduced energy
+                }
+        
+                // Set the target position
+                controller.SetPositionTarget(currentPosition);
+        
+                yield return new WaitForFixedUpdate();
             }
         }
         

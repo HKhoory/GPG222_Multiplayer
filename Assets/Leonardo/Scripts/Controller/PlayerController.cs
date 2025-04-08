@@ -129,13 +129,8 @@ namespace Leonardo.Scripts.Controller
             // Dummy proofing (Im setting the rigidbody rotation freeze).
             if (_rb != null)
             {
-                // For remote players, use kinematic to let network positioning control them.
-                _rb.isKinematic = !_isLocalPlayer;
-                
-                // Only apply gravity to local player.
-                _rb.useGravity = _isLocalPlayer;
-                
-                // Prevent rigidbody from rotating the player.
+                _rb.isKinematic = false;
+                _rb.useGravity = true;
                 _rb.freezeRotation = true;
             }
         }
@@ -155,8 +150,8 @@ namespace Leonardo.Scripts.Controller
             
             if (_rb != null)
             {
-                _rb.isKinematic = !_isLocalPlayer;
-                _rb.useGravity = _isLocalPlayer;
+                //_rb.isKinematic = !_isLocalPlayer;
+                //_rb.useGravity = _isLocalPlayer;
             }
         }
         
