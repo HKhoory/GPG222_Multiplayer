@@ -186,10 +186,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cdc56c91cbd299d429b1cb5441f35028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cooldownTime: 2
+  cooldownTime: 1
   abilityName: Ability
   abilityDescription: 
-  effectPrefab: {fileID: 964872830951245912, guid: 51bd136e367531b4d90dec47834987cc, type: 3}
+  effectPrefab: {fileID: 1429954232896169633, guid: 83036083a4ebcd34f98131bd3cf6f4d2, type: 3}
   coneAngle: 60
   coneDistance: 5
   pushForce: 10
