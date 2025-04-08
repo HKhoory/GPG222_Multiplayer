@@ -1,4 +1,6 @@
+using System;
 using System.Net.Sockets;
+using UnityEngine;
 
 namespace Leonardo.Scripts.ClientRelated
 {

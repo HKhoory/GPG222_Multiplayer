@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Leonardo.Scripts.ClientRelated;
 using UnityEngine;
 
 namespace Dyson.GPG222.Lobby
@@ -7,21 +9,20 @@ namespace Dyson.GPG222.Lobby
     public class JoinLobby : MonoBehaviour
     {
         public GameObject joinLobbyCanvas;
-        // Start is called before the first frame update
-        void Start()
+        public GameObject lobbyCanvas;
+        public List<ClientState> players;
+        public ClientState playersId;
+
+        private void Start()
         {
-
-        }
-
-        // Update is called once per frame
-        void Update()
-        {
-
+            playersId = new ClientState();
         }
 
         public void JoinLobbyButton()
         {
             joinLobbyCanvas.SetActive(false);
+            lobbyCanvas.SetActive(true);
+            Debug.Log("Who joined my lobby?: " + playersId.ClientId);
         }
     }
 }
