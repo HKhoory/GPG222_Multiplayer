@@ -49,8 +49,11 @@ namespace Leonardo.Scripts.Abilities
         /// </summary>
         /// <param name="playerTransform">Transform of the player using the ability.</param>
         /// <returns>True if ability executed successfully.</returns>
-        protected abstract bool ExecuteAbilityEffect(Transform playerTransform);
-        
+        protected virtual bool ExecuteAbilityEffect(Transform playerTransform)
+        {
+            return false;
+        }
+
         /// <summary>
         /// Start the cooldown of the ability.
         /// </summary>
