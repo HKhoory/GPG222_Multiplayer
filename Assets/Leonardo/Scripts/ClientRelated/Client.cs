@@ -27,12 +27,6 @@ namespace Leonardo.Scripts.ClientRelated
         private GameObject playerPrefab;
 
         [SerializeField] private Vector3 spawnPosition = new Vector3(0, 1, 0);
-
-        [Header("- Test Settings")] [SerializeField]
-        private bool enableTestMovement = true;
-
-        [SerializeField] private float testMovementSpeed = 2f;
-
         [Header("- Network Settings")] [SerializeField]
         private float updateInterval = .1f;
 
@@ -108,7 +102,7 @@ namespace Leonardo.Scripts.ClientRelated
                 if (localPlayer != null && _playerObjects.ContainsKey(localPlayer.tag))
                 {
                     SendPosition(_playerObjects[localPlayer.tag].transform.position);
-                    SendRotation(_playerObjects[localPlayer.tag].transform.eulerAngles);
+                    //SendRotation(_playerObjects[localPlayer.tag].transform.eulerAngles);
                 }
             }
         }
@@ -196,33 +190,44 @@ namespace Leonardo.Scripts.ClientRelated
         private void UpdateOrCreatePlayerPosition(PlayerPositionData playerPos)
         {
             int playerTag = playerPos.playerData.tag;
-
-            // Skip updates for our own player
+    
+            // Skip updates for our own player.
             if (playerTag == localPlayer.tag)
                 return;
-
+            
             if (!_playerObjects.ContainsKey(playerTag))
             {
-                // Create a new player object
                 Debug.LogWarning($"CREATING REMOTE PLAYER: {playerPos.playerData.name} with tag {playerTag}");
-
+        
                 Vector3 position = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
                 GameObject newPlayer = Instantiate(playerPrefab, position, Quaternion.identity);
                 _playerObjects[playerTag] = newPlayer;
-
+        
                 var controller = newPlayer.GetComponent<PlayerController>();
                 if (controller != null)
                 {
                     controller.SetLocalplayer(false);
                 }
-
+        
+                newPlayer.AddComponent<RemotePlayerController>();
+        
                 newPlayer.name = $"RemotePlayer_{playerPos.playerData.name}";
             }
             else
             {
-                // Update existing player's position
+                // Update existing player's position target.
                 Vector3 newPosition = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
-                _playerObjects[playerTag].transform.position = newPosition;
+                
+                var remoteController = _playerObjects[playerTag].GetComponent<RemotePlayerController>();
+                if (remoteController != null)
+                {
+                    remoteController.SetPositionTarget(newPosition);
+                }
+                else
+                {
+                    _playerObjects[playerTag].transform.position = newPosition;
+                }
+        
                 Debug.LogWarning($"Updated position for existing player {playerPos.playerData.name} to {newPosition}");
             }
         }
