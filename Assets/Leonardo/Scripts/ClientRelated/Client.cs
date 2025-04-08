@@ -106,7 +106,6 @@ namespace Leonardo.Scripts.ClientRelated
                 {
                     SendPosition(_playerObjects[localPlayer.tag].transform.position);
                     SendRotation(_playerObjects[localPlayer.tag].transform.eulerAngles);
-                    Debug.LogWarning($"Sending position update: {_playerObjects[localPlayer.tag].transform.position}");
                 }
             }
         }   

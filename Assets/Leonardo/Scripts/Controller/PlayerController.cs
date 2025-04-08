@@ -36,8 +36,11 @@ namespace Leonardo.Scripts.Controller
 
         private void Update()
         {
-            if (!_isLocalPlayer) return;
-            
+            // Only handle input for local player. (This looks better)
+            if (!_isLocalPlayer) 
+            {
+                return; 
+            }
             _isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
             
             float horizontalInput = Input.GetAxisRaw("Horizontal");
@@ -68,45 +71,19 @@ namespace Leonardo.Scripts.Controller
             Vector3 velocity = new Vector3(_movement.x, rb.velocity.y, _movement.z);
             rb.velocity = velocity;
         }
-
         
         #endregion
         
         #region Script Specific Methods
 
         /// <summary>
-        /// Checks if the player can jump or not.
+        /// JUMP!
         /// </summary>
-        private void HandleJumping()
+        private void Jump()
         {
-            if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
-            {
-                Jump();
-            }
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
 
-        /// <summary>
-        /// Processes input for movement.
-        /// </summary>
-        private void HandleInput()
-        {
-            // Get input
-            float horizontalInput = Input.GetAxisRaw("Horizontal");
-            float verticalInput = Input.GetAxisRaw("Vertical");
-
-            // Calculate movement.
-            _movement = transform.forward * verticalInput + transform.right * horizontalInput;
-            _movement = Vector3.ClampMagnitude(_movement, 1f) * moveSpeed;
-
-            // Rotation input for testing-
-            _rotation = 0;
-            if (Input.GetKey(KeyCode.Q))
-                _rotation = -1;
-            else if (Input.GetKey(KeyCode.E))
-                _rotation = 1;
-        }
-
-        
         /// <summary>
         /// Initializes the components of this script.
         /// </summary>
@@ -125,29 +102,22 @@ namespace Leonardo.Scripts.Controller
                 groundCheck = check.transform;
             }
 
-            // Dummy proofing (Im setting the rigidbody rotation freeze)
+            // Dummy proofing (Im setting the rigidbody rotation freeze).
             if (rb != null)
             {
-                // I added this because it looks better. To correct all stutters when players move we just need to lerp the two positions.
-                // But I kinda like the animation look it currently has.
+                // For remote players, use kinematic to let network positioning control them.
                 rb.isKinematic = !_isLocalPlayer;
                 
+                // Only apply gravity to local player.
                 rb.useGravity = _isLocalPlayer;
                 
-                rb.freezeRotation = true; // Prevent rigidbody from rotating the player.
+                // Prevent rigidbody from rotating the player.
+                rb.freezeRotation = true;
             }
         }
 
         /// <summary>
-        /// JUMP!
-        /// </summary>
-        private void Jump()
-        {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-        }
-
-        /// <summary>
-        /// Sets weather this player is controlled locally or by the network (aka another client).
+        /// Sets whether this player is controlled locally or by the network.
         /// </summary>
         /// <param name="isLocalPlayer">Is this the local player?</param>
         public void SetLocalplayer(bool isLocalPlayer)
@@ -157,6 +127,12 @@ namespace Leonardo.Scripts.Controller
             if (GetComponent<Renderer>() != null)
             {
                 GetComponent<Renderer>().material.color = isLocalPlayer ? Color.blue : Color.red;
+            }
+            
+            if (rb != null)
+            {
+                rb.isKinematic = !_isLocalPlayer;
+                rb.useGravity = _isLocalPlayer;
             }
         }
 
