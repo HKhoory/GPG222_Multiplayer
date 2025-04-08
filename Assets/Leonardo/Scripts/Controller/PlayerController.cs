@@ -12,6 +12,9 @@ namespace Leonardo.Scripts.Controller
 
         [SerializeField] private float rotationSpeed = 120f;
         [SerializeField] private float jumpForce = 5f;
+        
+        // For the rotation.
+        [SerializeField] private float minimumMovementThreshold = 0.05f;
 
         [Header("- Ground Check")] [SerializeField]
         private Transform groundCheck;
@@ -23,7 +26,7 @@ namespace Leonardo.Scripts.Controller
         private Rigidbody rb;
 
         private Vector3 _movement;
-        private float _rotation;
+        private Vector3 _previousPosition;
         private bool _isGrounded;
         private bool _isLocalPlayer = true;
 
@@ -32,6 +35,7 @@ namespace Leonardo.Scripts.Controller
         private void Awake()
         {
             InitializeComponents();
+            _previousPosition = transform.position;
         }
 
         private void Update()
@@ -50,13 +54,6 @@ namespace Leonardo.Scripts.Controller
             
             _movement = movementDirection * moveSpeed;
             
-            if (movementDirection.magnitude > 0.01f)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(movementDirection, Vector3.up);
-        
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-            }
-            
             if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
             {
                 Jump();
@@ -70,6 +67,24 @@ namespace Leonardo.Scripts.Controller
             // Apply movement.
             Vector3 velocity = new Vector3(_movement.x, rb.velocity.y, _movement.z);
             rb.velocity = velocity;
+        }
+        
+        private void LateUpdate()
+        {
+            if (!_isLocalPlayer) return;
+            Vector3 movementVector = transform.position - _previousPosition;
+            
+            // Only rotate if we've moved a significant amount.
+            if (movementVector.magnitude > minimumMovementThreshold)
+            {
+                if (movementVector.magnitude > 0.001f)
+                {
+                    Quaternion targetRotation = Quaternion.LookRotation(movementVector.normalized);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+                }
+            }
+            
+            _previousPosition = transform.position;
         }
         
         #endregion
