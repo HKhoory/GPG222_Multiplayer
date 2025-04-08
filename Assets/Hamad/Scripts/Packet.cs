@@ -17,7 +17,9 @@ namespace Hamad.Scripts
             Id,
             Color,
             PlayersPositionData,
-            PlayersRotationData
+            PlayersRotationData,
+            Ping,
+            PingResponse
         }
 
         public PacketType packetType;
