@@ -4,6 +4,7 @@ using UnityEngine;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
+using Leonardo.Scripts.Packets;
 
 namespace Leonardo.Scripts.Networking
 {
@@ -12,6 +13,7 @@ namespace Leonardo.Scripts.Networking
         public event Action<string, string> OnMessageReceived;
         public event Action<PlayerPositionData> OnPositionReceived;
         public event Action OnPingResponseReceived;
+        public event Action<int, Vector3> OnPushEventReceived; 
         
         private PlayerData _localPlayerData;
         
@@ -39,6 +41,10 @@ namespace Leonardo.Scripts.Networking
                         
                     case Packet.PacketType.PingResponse:
                         ProcessPingResponsePacket();
+                        break;
+                    
+                    case Packet.PacketType.PushEvent:
+                        ProcessPushEventPacket(data);
                         break;
                         
                     default:
@@ -75,6 +81,19 @@ namespace Leonardo.Scripts.Networking
         private void ProcessPingResponsePacket()
         {
             OnPingResponseReceived?.Invoke();
+        }
+        
+        private void ProcessPushEventPacket(byte[] data)
+        {
+            PushEventPacket pushPacket = new PushEventPacket().Deserialize(data);
+            Vector3 force = new Vector3(pushPacket.ForceX, pushPacket.ForceY, pushPacket.ForceZ);
+            OnPushEventReceived?.Invoke(pushPacket.TargetPlayerTag, force);
+        }
+        
+        public byte[] CreatePushEventPacket(int targetPlayerTag, Vector3 force)
+        {
+            PushEventPacket pushPacket = new PushEventPacket(_localPlayerData, targetPlayerTag, force);
+            return pushPacket.Serialize();
         }
         
         public byte[] CreateMessagePacket(string message)

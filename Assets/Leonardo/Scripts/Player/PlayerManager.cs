@@ -89,6 +89,24 @@ namespace Leonardo.Scripts.Player
             }
         }
         
+        public void ApplyPushToPlayer(int playerTag, Vector3 force)
+        {
+            if (!_playerObjects.ContainsKey(playerTag))
+            {
+                Debug.LogWarning($"PlayerManager.cs: Cannot push player {playerTag}, not found.");
+                return;
+            }
+    
+            GameObject playerObject = _playerObjects[playerTag];
+            Rigidbody rb = playerObject.GetComponent<Rigidbody>();
+    
+            if (rb != null)
+            {
+                Debug.Log($"PlayerManager.cs: Applying push force {force} to player {playerTag}.");
+                rb.AddForce(force, ForceMode.Impulse);
+            }
+        }
+        
         public void RemovePlayer(int playerTag)
         {
             if (_playerObjects.ContainsKey(playerTag))
