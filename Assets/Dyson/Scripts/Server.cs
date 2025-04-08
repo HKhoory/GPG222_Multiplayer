@@ -7,7 +7,9 @@ using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
 using Hamad.Scripts.Rotation;
+using Leonardo.Scripts;
 using Leonardo.Scripts.ClientRelated;
+using Leonardo.Scripts.Networking;
 
 namespace Dyson_GPG222_Server
 {
@@ -219,6 +221,33 @@ namespace Dyson_GPG222_Server
                         Debug.Log(
                             $"Server.cs: Received rotation updates for {rotationPacket.PlayerRotationData.Count} players.");
                         Broadcast(basePacket.packetType, data, clientId);
+                        break;
+                    
+                    // Leo: This is to check the latency.
+                    case Packet.PacketType.Ping:
+                        PingPacket pingPacket = new PingPacket().Deserialize(data);
+                        Debug.Log($"Server.cs: Received ping from {pingPacket.playerData.name}");
+    
+                        if (connectedPlayers.ContainsKey(clientId))
+                        {
+                            PingResponsePacket responsePacket = new PingResponsePacket(pingPacket.playerData, pingPacket.Timestamp);
+                            byte[] responseData = responsePacket.Serialize();
+        
+                            // Send directly back to the one who sent it only.
+                            if (clients.ContainsKey(clientId) && clients[clientId].Socket != null && clients[clientId].Socket.Connected)
+                            {
+                                try
+                                {
+                                    NetworkStream stream = clients[clientId].Socket.GetStream();
+                                    stream.Write(responseData, 0, responseData.Length);
+                                    //Debug.Log($"Server.cs: Sent ping response to {clientId}");
+                                }
+                                catch (Exception e)
+                                {
+                                    Debug.LogError($"Server.cs: Error sending ping response: {e.Message}");
+                                }
+                            }
+                        }
                         break;
 
                     default:

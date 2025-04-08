@@ -12,6 +12,9 @@ namespace Leonardo.Scripts.Controller
 
         [SerializeField] private float rotationSpeed = 120f;
         [SerializeField] private float jumpForce = 5f;
+        
+        // For the rotation.
+        [SerializeField] private float minimumMovementThreshold = 0.05f;
 
         [Header("- Ground Check")] [SerializeField]
         private Transform groundCheck;
@@ -23,7 +26,7 @@ namespace Leonardo.Scripts.Controller
         private Rigidbody rb;
 
         private Vector3 _movement;
-        private float _rotation;
+        private Vector3 _previousPosition;
         private bool _isGrounded;
         private bool _isLocalPlayer = true;
 
@@ -32,21 +35,29 @@ namespace Leonardo.Scripts.Controller
         private void Awake()
         {
             InitializeComponents();
+            _previousPosition = transform.position;
         }
 
         private void Update()
         {
-            // The local player can only control its assigned GameObject.
-            if (!_isLocalPlayer) return;
-
-            // Check if player is grounded.
+            // Only handle input for local player.
+            if (!_isLocalPlayer) 
+            {
+                return; 
+            }
             _isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-
-            HandleInput();
-            HandleJumping();
-
-            // Apply rotation.
-            transform.Rotate(Vector3.up, _rotation * rotationSpeed * Time.deltaTime);
+            
+            float horizontalInput = Input.GetAxisRaw("Horizontal");
+            float verticalInput = Input.GetAxisRaw("Vertical");
+            
+            Vector3 movementDirection = new Vector3(horizontalInput, 0, verticalInput).normalized;
+            
+            _movement = movementDirection * moveSpeed;
+            
+            if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
+            {
+                Jump();
+            }
         }
 
         private void FixedUpdate()
@@ -57,45 +68,37 @@ namespace Leonardo.Scripts.Controller
             Vector3 velocity = new Vector3(_movement.x, rb.velocity.y, _movement.z);
             rb.velocity = velocity;
         }
-
+        
+        private void LateUpdate()
+        {
+            if (!_isLocalPlayer) return;
+            Vector3 movementVector = transform.position - _previousPosition;
+            
+            // Only rotate if we've moved a significant amount.
+            if (movementVector.magnitude > minimumMovementThreshold)
+            {
+                if (movementVector.magnitude > 0.001f)
+                {
+                    Quaternion targetRotation = Quaternion.LookRotation(movementVector.normalized);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+                }
+            }
+            
+            _previousPosition = transform.position;
+        }
         
         #endregion
         
         #region Script Specific Methods
 
         /// <summary>
-        /// Checks if the player can jump or not.
+        /// JUMP!
         /// </summary>
-        private void HandleJumping()
+        private void Jump()
         {
-            if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
-            {
-                Jump();
-            }
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
 
-        /// <summary>
-        /// Processes input for movement.
-        /// </summary>
-        private void HandleInput()
-        {
-            // Get input
-            float horizontalInput = Input.GetAxisRaw("Horizontal");
-            float verticalInput = Input.GetAxisRaw("Vertical");
-
-            // Calculate movement.
-            _movement = transform.forward * verticalInput + transform.right * horizontalInput;
-            _movement = Vector3.ClampMagnitude(_movement, 1f) * moveSpeed;
-
-            // Rotation input for testing-
-            _rotation = 0;
-            if (Input.GetKey(KeyCode.Q))
-                _rotation = -1;
-            else if (Input.GetKey(KeyCode.E))
-                _rotation = 1;
-        }
-
-        
         /// <summary>
         /// Initializes the components of this script.
         /// </summary>
@@ -114,29 +117,22 @@ namespace Leonardo.Scripts.Controller
                 groundCheck = check.transform;
             }
 
-            // Dummy proofing (Im setting the rigidbody rotation freeze)
+            // Dummy proofing (Im setting the rigidbody rotation freeze).
             if (rb != null)
             {
-                // I added this because it looks better. To correct all stutters when players move we just need to lerp the two positions.
-                // But I kinda like the animation look it currently has.
+                // For remote players, use kinematic to let network positioning control them.
                 rb.isKinematic = !_isLocalPlayer;
                 
+                // Only apply gravity to local player.
                 rb.useGravity = _isLocalPlayer;
                 
-                rb.freezeRotation = true; // Prevent rigidbody from rotating the player.
+                // Prevent rigidbody from rotating the player.
+                rb.freezeRotation = true;
             }
         }
 
         /// <summary>
-        /// JUMP!
-        /// </summary>
-        private void Jump()
-        {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-        }
-
-        /// <summary>
-        /// Sets weather this player is controlled locally or by the network (aka another client).
+        /// Sets whether this player is controlled locally or by the network.
         /// </summary>
         /// <param name="isLocalPlayer">Is this the local player?</param>
         public void SetLocalplayer(bool isLocalPlayer)
@@ -146,6 +142,12 @@ namespace Leonardo.Scripts.Controller
             if (GetComponent<Renderer>() != null)
             {
                 GetComponent<Renderer>().material.color = isLocalPlayer ? Color.blue : Color.red;
+            }
+            
+            if (rb != null)
+            {
+                rb.isKinematic = !_isLocalPlayer;
+                rb.useGravity = _isLocalPlayer;
             }
         }
 
