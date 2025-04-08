@@ -110,7 +110,7 @@ namespace Leonardo.Scripts.Abilities
                     string name = targetCollider.gameObject.name;
 
                     // Just found out this exists btw.
-                    if (name.StartsWith("PlayerManager.cs: RemotePlayer_"))
+                    if (name.StartsWith("RemotePlayer_"))
                     {
 
                         // Send the push event
