@@ -36,7 +36,7 @@ namespace Leonardo.Scripts.Controller
 
         private void Update()
         {
-            // Only handle input for local player. (This looks better)
+            // Only handle input for local player.
             if (!_isLocalPlayer) 
             {
                 return; 
@@ -53,7 +53,7 @@ namespace Leonardo.Scripts.Controller
             if (movementDirection.magnitude > 0.01f)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(movementDirection, Vector3.up);
-                
+        
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
             }
             

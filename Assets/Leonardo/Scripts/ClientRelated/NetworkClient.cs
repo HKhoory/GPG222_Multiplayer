@@ -67,7 +67,7 @@ namespace Leonardo.Scripts.ClientRelated
             // Connect to server.
             if (_networkConnection.Connect())
             {
-                // SendMessagePacket("Connected, hi!");
+                SendMessagePacket("Connected, hi!");
                 _playerManager.SpawnLocalPlayer();
             }
         }
@@ -86,7 +86,7 @@ namespace Leonardo.Scripts.ClientRelated
             }
         }
 
-        private void SendMessagePacket(string message)
+        public void SendMessagePacket(string message)
         {
             if (!IsConnected) return;
             
@@ -94,7 +94,7 @@ namespace Leonardo.Scripts.ClientRelated
             _networkConnection.SendData(data);
         }
 
-        private void SendPosition(Vector3 position)
+        public void SendPosition(Vector3 position)
         {
             if (!IsConnected) return;
             
