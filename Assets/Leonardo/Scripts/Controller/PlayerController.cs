@@ -29,6 +29,8 @@ namespace Leonardo.Scripts.Controller
         private Vector3 _previousPosition;
         private bool _isGrounded;
         private bool _isLocalPlayer = true;
+        
+        public bool IsLocalPlayer => _isLocalPlayer;
 
         #region Unity Methods
 
