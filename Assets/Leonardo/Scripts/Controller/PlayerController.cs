@@ -36,17 +36,28 @@ namespace Leonardo.Scripts.Controller
 
         private void Update()
         {
-            // The local player can only control its assigned GameObject.
             if (!_isLocalPlayer) return;
-
-            // Check if player is grounded.
+            
             _isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-
-            HandleInput();
-            HandleJumping();
-
-            // Apply rotation.
-            transform.Rotate(Vector3.up, _rotation * rotationSpeed * Time.deltaTime);
+            
+            float horizontalInput = Input.GetAxisRaw("Horizontal");
+            float verticalInput = Input.GetAxisRaw("Vertical");
+            
+            Vector3 movementDirection = new Vector3(horizontalInput, 0, verticalInput).normalized;
+            
+            _movement = movementDirection * moveSpeed;
+            
+            if (movementDirection.magnitude > 0.01f)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(movementDirection, Vector3.up);
+                
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            }
+            
+            if (Input.GetKeyDown(KeyCode.Space) && _isGrounded)
+            {
+                Jump();
+            }
         }
 
         private void FixedUpdate()

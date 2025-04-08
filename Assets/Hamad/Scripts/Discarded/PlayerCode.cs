@@ -1,3 +1,4 @@
+/*
 using UnityEngine;
 
 namespace Hamad.Scripts
@@ -48,3 +49,4 @@ namespace Hamad.Scripts
 
     }
 }
+*/
