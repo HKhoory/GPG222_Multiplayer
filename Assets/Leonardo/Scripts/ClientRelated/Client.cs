@@ -304,9 +304,21 @@ namespace Leonardo.Scripts.ClientRelated
                         }
 
                         break;
+                    
+                    case Packet.PacketType.PingResponse:
+                        PingResponsePacket pingResponsePacket = new PingResponsePacket().Deserialize(data);
+    
+                        PingMeter.PingMeter pingMeter = FindObjectOfType<PingMeter.PingMeter>();
+                        if (pingMeter != null)
+                        {
+                            pingMeter.OnPingResponse();
+                        }
+    
+                        //Debug.Log($"Client: Received ping response from server");
+                        break;
 
                     default:
-                        Debug.Log($"Client: Unknown packet type received: {basePacket.packetType}");
+                        Debug.LogWarning($"Client: Unknown packet type received: {basePacket.packetType}");
                         break;
                 }
             }
@@ -409,26 +421,27 @@ namespace Leonardo.Scripts.ClientRelated
             }
         }
 
-        public void SendPingPacket(int ping)
+        /// <summary>
+        /// To check latency.
+        /// </summary>
+        public void SendPingPacket()
         {
             if (!isConnected || socket == null) return;
-
+    
             try
             {
-                PlayerRotationData rotationData = new PlayerRotationData(
-                    localPlayer
-                );
-
-                List<PlayerRotationData> playerRotationList = new List<PlayerRotationData> { rotationData };
-
-                PlayersRotationDataPacket rotationPacket =
-                    new PlayersRotationDataPacket(localPlayer, playerRotationList);
-                byte[] data = rotationPacket.Serialize();
+                PingPacket pingPacket = new PingPacket(localPlayer);
+                byte[] data = pingPacket.Serialize();
                 socket.Send(data);
+        
+                //Debug.LogWarning("Client: Sent ping packet to server");
             }
             catch (SocketException e)
             {
-                Debug.LogError($"Client: Error sending rotation: {e.Message}");
+                if (e.SocketErrorCode != SocketError.WouldBlock)
+                {
+                    Debug.LogError($"Client: Error sending ping: {e.Message}");
+                }
             }
         }
 

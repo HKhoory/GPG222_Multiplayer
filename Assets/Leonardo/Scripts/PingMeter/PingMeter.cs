@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics;
 using Leonardo.Scripts.ClientRelated;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Debug = UnityEngine.Debug;
@@ -13,7 +14,7 @@ namespace Leonardo.Scripts.PingMeter
     public class PingMeter : MonoBehaviour
     {
         [Header("UI Elements")]
-        [SerializeField] private Text pingText;
+        [SerializeField] private TextMeshProUGUI pingText;
         
         [Header("Settings")]
         [SerializeField] private float pingUpdateInterval = .25f; // How often to measure ping (in seconds)
