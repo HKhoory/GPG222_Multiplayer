@@ -79,12 +79,12 @@ namespace Leonardo.Scripts.Player
     
             Debug.LogWarning($"PlayerManager.cs: Created remote player: {playerPos.playerData.name} with tag {playerTag}");
         }
-        
+
         private void UpdateExistingRemotePlayer(PlayerPositionData playerPos)
         {
             int playerTag = playerPos.playerData.tag;
             Vector3 newPosition = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
-            
+
             var remoteController = _playerObjects[playerTag].GetComponent<RemotePlayerController>();
             if (remoteController != null)
             {
@@ -96,66 +96,43 @@ namespace Leonardo.Scripts.Player
             }
         }
         
-        public void ApplyPushToPlayer(int playerTag, Vector3 force, string effectName)
+        public void HandlePushEvent(int playerTag, Vector3 force, string effectName)
         {
-            if (!_playerObjects.ContainsKey(playerTag))
+            Debug.Log($"PlayerManager.cs: Received push event for player {playerTag}, local player is {_localPlayerData.tag}");
+    
+            if (playerTag == _localPlayerData.tag)
             {
-                Debug.LogWarning($"PlayerManager.cs: Cannot push player {playerTag}, not found.");
-                return;
+                Debug.Log($"PlayerManager.cs: Push is for local player, applying force {force}");
+                GameObject localPlayer = GetLocalPlayerObject();
+                if (localPlayer != null)
+                {
+                    PlayerController controller = localPlayer.GetComponent<PlayerController>();
+                    if (controller != null)
+                    {
+                        controller.ApplyPushForce(force, effectName);
+                    }
+                    else
+                    {
+                        Debug.LogError("PlayerManager.cs: Local player has no PlayerController component");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("PlayerManager.cs: Could not find local player object");
+                }
             }
-
-            GameObject playerObject = _playerObjects[playerTag];
-            RemotePlayerController remoteController = playerObject.GetComponent<RemotePlayerController>();
-
-            if (remoteController != null)
+    
+            if (_playerObjects.ContainsKey(playerTag))
             {
-                // Play effect if needed
+                GameObject playerObject = _playerObjects[playerTag];
                 if (!string.IsNullOrEmpty(effectName) && EffectManager.Instance != null)
                 {
                     EffectManager.Instance.PlayEffect(effectName, playerObject.transform.position, playerObject.transform.rotation);
                 }
-        
-                // Apply the push using our simulated physics
-                StartCoroutine(SimulatePushTrajectory(remoteController, force));
-        
-                Debug.Log($"PlayerManager.cs: Applying simulated push to player {playerTag} with force {force}.");
             }
         }
-        
-        private IEnumerator SimulatePushTrajectory(RemotePlayerController controller, Vector3 force)
-        {
-            Vector3 startPosition = controller.transform.position;
-            Vector3 velocity = force / 10f; // Scale down force to get a reasonable velocity
-            Vector3 currentPosition = startPosition;
-            float gravity = 9.8f;
-            float drag = 0.5f;
-    
-            // Simulate physics for several frames to create a trajectory
-            for (int i = 0; i < 15; i++) // 15 steps of simulation
-            {
-                // Apply gravity to vertical velocity
-                velocity.y -= gravity * Time.fixedDeltaTime;
-        
-                // Apply drag to slow down movement over time
-                velocity *= (1f - drag * Time.fixedDeltaTime);
-        
-                // Calculate new position
-                currentPosition += velocity * Time.fixedDeltaTime;
-        
-                // Don't go below ground level (simple ground check)
-                if (currentPosition.y < 0.5f)
-                {
-                    currentPosition.y = 0.5f;
-                    velocity.y = Mathf.Abs(velocity.y) * 0.6f; // Bounce with reduced energy
-                }
-        
-                // Set the target position
-                controller.SetPositionTarget(currentPosition);
-        
-                yield return new WaitForFixedUpdate();
-            }
-        }
-        
+
+
         public void RemovePlayer(int playerTag)
         {
             if (_playerObjects.ContainsKey(playerTag))

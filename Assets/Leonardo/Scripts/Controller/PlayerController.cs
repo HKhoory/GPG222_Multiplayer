@@ -1,4 +1,5 @@
 using Leonardo.Scripts.Abilities;
+using Leonardo.Scripts.Effects;
 using UnityEngine;
 
 namespace Leonardo.Scripts.Controller
@@ -152,6 +153,22 @@ namespace Leonardo.Scripts.Controller
             {
                 //_rb.isKinematic = !_isLocalPlayer;
                 //_rb.useGravity = _isLocalPlayer;
+            }
+        }
+        
+        public void ApplyPushForce(Vector3 force, string effectName)
+        {
+            if (!_isLocalPlayer) return;
+    
+            if (!string.IsNullOrEmpty(effectName) && EffectManager.Instance != null)
+            {
+                EffectManager.Instance.PlayEffect(effectName, transform.position, transform.rotation);
+            }
+    
+            if (_rb != null)
+            {
+                _rb.AddForce(force, ForceMode.Impulse);
+                //Debug.Log($"PlayerController.cs: Applied push force {force} to local player");
             }
         }
         

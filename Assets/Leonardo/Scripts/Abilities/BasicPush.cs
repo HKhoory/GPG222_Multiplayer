@@ -30,7 +30,6 @@ namespace Leonardo.Scripts.Abilities
         {
             Collider[] colliders = Physics.OverlapSphere(playerTransform.position, coneDistance);
 
-
             foreach (Collider collider in colliders)
             {
                 if (collider.transform == playerTransform)
@@ -54,7 +53,38 @@ namespace Leonardo.Scripts.Abilities
                 float angleToTarget = Vector3.Angle(playerTransform.forward, directionToTarget);
                 if (angleToTarget <= coneAngle / 2 && directionToTarget.magnitude <= coneDistance)
                 {
-                    ApplyPushForce(playerTransform, collider);
+                    // Calculate push direction TO SEND IT AS A PACKAGE.
+                    Vector3 pushDirection;
+                    if (useWorldSpace)
+                    {
+                        pushDirection = playerTransform.forward;
+                    }
+                    else
+                    {
+                        pushDirection = (collider.transform.position - playerTransform.position).normalized;
+                    }
+
+                    // Add upward force to make it chaotic and fun.
+                    pushDirection += Vector3.up * upwardForce;
+                    pushDirection.Normalize();
+
+                    Vector3 finalForce = pushDirection * pushForce;
+
+                    // Only send network event.
+                    int targetPlayerTag = remotePlayer.PlayerTag;
+                    NetworkClient networkClient = FindObjectOfType<NetworkClient>();
+                    if (networkClient != null && targetPlayerTag != -1)
+                    {
+                        networkClient.SendPushEvent(targetPlayerTag, finalForce, effectName);
+                        // Play effect locally.
+                        PlayEffect(collider.transform.position, collider.transform.rotation);
+                        Debug.Log($"BasicPush.cs: Sent network push event for player with tag {targetPlayerTag}.");
+                    }
+                    else
+                    {
+                        Debug.LogWarning(
+                            $"BasicPush.cs: Could not send network push event - NetworkClient or player tag not found.");
+                    }
                 }
             }
 
