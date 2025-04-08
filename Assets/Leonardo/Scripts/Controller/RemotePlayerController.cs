@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Leonardo.Scripts
+namespace Leonardo.Scripts.Controller
 {
     /// <summary>
     /// Handles the movement interpolation for remote players to reduce jitter.
@@ -36,7 +36,8 @@ namespace Leonardo.Scripts
             if (actualMovement.magnitude > minimumMovementThreshold)
             {
                 Vector3 movementDirection = actualMovement;
-                movementDirection.y = 0;
+                // THIS IS TO IGNORE VERTICAL MOVEMENT (to not affect vertical rotation). I prefer with it cause it looks silly.
+                //movementDirection.y = 0;
                 
                 if (movementDirection.magnitude > 0.001f)
                 {

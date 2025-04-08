@@ -3,10 +3,9 @@ using System.Diagnostics;
 using Leonardo.Scripts.ClientRelated;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using Debug = UnityEngine.Debug;
 
-namespace Leonardo.Scripts.PingMeter
+namespace Leonardo.Scripts.Networking
 {
     /// <summary>
     /// A simple ping meter that measures round-trip time to the server.
@@ -19,26 +18,22 @@ namespace Leonardo.Scripts.PingMeter
         [Header("Settings")]
         [SerializeField] private float pingUpdateInterval = .25f; // How often to measure ping (in seconds)
         
-        private Client client;
-        private Stopwatch stopwatch;
-        private int currentPing;
-        private bool isPingSent;
+        private NetworkClient _client;
+        private Stopwatch _stopwatch;
+        private int _currentPing;
+        private bool _isPingSent;
         
         private void Start()
         {
-            // Find the client in the scene
-            client = FindObjectOfType<Client>();
+            _client = FindObjectOfType<NetworkClient>();
             
-            if (client == null)
+            if (_client == null)
             {
                 Debug.LogError("PingMeter: No Client component found in the scene!");
                 return;
             }
             
-            // Initialize the stopwatch
-            stopwatch = new Stopwatch();
-            
-            // Start measuring ping regularly
+            _stopwatch = new Stopwatch();
             StartCoroutine(MeasurePingRoutine());
         }
         
@@ -49,11 +44,9 @@ namespace Leonardo.Scripts.PingMeter
         {
             while (true)
             {
-                // Wait for the specified interval
                 yield return new WaitForSeconds(pingUpdateInterval);
                 
-                // Only send a new ping if we're not waiting for a response
-                if (!isPingSent && client.IsConnected)
+                if (!_isPingSent && _client.IsConnected)
                 {
                     SendPing();
                 }
@@ -65,12 +58,11 @@ namespace Leonardo.Scripts.PingMeter
         /// </summary>
         private void SendPing()
         {
-            stopwatch.Reset();
-            stopwatch.Start();
-            isPingSent = true;
+            _stopwatch.Reset();
+            _stopwatch.Start();
+            _isPingSent = true;
             
-            // Send a ping message to the server
-            client.SendPingPacket();
+            _client.SendPingPacket();
         }
         
         /// <summary>
@@ -78,13 +70,12 @@ namespace Leonardo.Scripts.PingMeter
         /// </summary>
         public void OnPingResponse()
         {
-            if (!isPingSent) return;
+            if (!_isPingSent) return;
             
-            stopwatch.Stop();
-            currentPing = (int)stopwatch.ElapsedMilliseconds;
-            isPingSent = false;
+            _stopwatch.Stop();
+            _currentPing = (int)_stopwatch.ElapsedMilliseconds;
+            _isPingSent = false;
             
-            // Update the UI
             UpdatePingDisplay();
         }
         
@@ -99,13 +90,13 @@ namespace Leonardo.Scripts.PingMeter
                 string colorHex = "#00FF00"; 
                 
                 // Really bad ping.
-                if (currentPing > 200)
+                if (_currentPing > 200)
                     colorHex = "#FF0000"; 
                 // Medium ping/
-                else if (currentPing > 100)
+                else if (_currentPing > 100)
                     colorHex = "#FFFF00"; 
                 
-                pingText.text = $"<color={colorHex}>Ping: {currentPing} ms</color>";
+                pingText.text = $"<color={colorHex}>Ping: {_currentPing} ms</color>";
             }
         }
         
@@ -114,7 +105,7 @@ namespace Leonardo.Scripts.PingMeter
         /// </summary>
         public int GetCurrentPing()
         {
-            return currentPing;
+            return _currentPing;
         }
     }
 }

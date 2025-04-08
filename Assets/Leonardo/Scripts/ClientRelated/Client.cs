@@ -1,4 +1,4 @@
-using System;
+/*using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using Hamad.Scripts;
@@ -6,6 +6,7 @@ using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
 using Hamad.Scripts.Rotation;
 using Leonardo.Scripts.Controller;
+using Leonardo.Scripts.Networking;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -232,27 +233,6 @@ namespace Leonardo.Scripts.ClientRelated
             }
         }
 
-        /// <summary>
-        /// Updates player's rotation.
-        /// </summary>
-        /// <param name="playerRot">The player data of the player to be rotated.</param>
-        private void UpdatePlayerRotation(PlayerRotationData playerRot)
-        {
-            int playerTag = playerRot.playerData.tag;
-
-            // Skip updates for our own player
-            if (playerTag == localPlayer.tag)
-                return;
-
-            // Update rotation if we have this player
-            if (_playerObjects.ContainsKey(playerTag))
-            {
-                Vector3 newRotation = new Vector3(playerRot.xRot, playerRot.yRot, playerRot.zRot);
-                _playerObjects[playerTag].transform.rotation = Quaternion.Euler(newRotation);
-                Debug.LogWarning($"Updated rotation for player {playerRot.playerData.name} to {newRotation}");
-            }
-        }
-
 
         /// <summary>
         /// Handles deserializing the packet and running the logic depending on the type of packet that it is.
@@ -294,26 +274,11 @@ namespace Leonardo.Scripts.ClientRelated
                         }
 
                         break;
-
-                    case Packet.PacketType.PlayersRotationData:
-                        PlayersRotationDataPacket rotationPacket = new PlayersRotationDataPacket().Deserialize(data);
-                        Debug.Log(
-                            $"Client: Received rotation updates for {rotationPacket.PlayerRotationData.Count} players");
-
-                        foreach (var playerRot in rotationPacket.PlayerRotationData)
-                        {
-                            if (playerRot.playerData.tag == localPlayer.tag)
-                                continue;
-
-                            UpdatePlayerRotation(playerRot);
-                        }
-
-                        break;
                     
                     case Packet.PacketType.PingResponse:
                         PingResponsePacket pingResponsePacket = new PingResponsePacket().Deserialize(data);
     
-                        PingMeter.PingMeter pingMeter = FindObjectOfType<PingMeter.PingMeter>();
+                        PingMeter pingMeter = FindObjectOfType<PingMeter>();
                         if (pingMeter != null)
                         {
                             pingMeter.OnPingResponse();
@@ -464,4 +429,4 @@ namespace Leonardo.Scripts.ClientRelated
             }
         }
     }
-}
+}*/

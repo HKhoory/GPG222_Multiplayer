@@ -1,7 +1,7 @@
 using System;
 using Hamad.Scripts;
 
-namespace Leonardo.Scripts
+namespace Leonardo.Scripts.Networking
 {
     public class PingPacket : Packet
     {
