@@ -63,8 +63,6 @@ namespace Leonardo.Scripts.ClientRelated
             _networkConnection.OnDataReceived += _packetHandler.ProcessPacket;
             _packetHandler.OnPositionReceived += _playerManager.UpdateRemotePlayerPosition;
             _packetHandler.OnPingResponseReceived += OnPingResponse;
-            _packetHandler.OnPushEventReceived += _playerManager.HandlePushEvent;
-
             
             // Connect to server.
             if (_networkConnection.Connect())
@@ -109,14 +107,6 @@ namespace Leonardo.Scripts.ClientRelated
             if (!IsConnected) return;
             
             byte[] data = _packetHandler.CreatePingPacket();
-            _networkConnection.SendData(data);
-        }
-        
-        public void SendPushEvent(int targetPlayerTag, Vector3 force, string effectName)
-        {
-            if (!IsConnected) return;
-    
-            byte[] data = _packetHandler.CreatePushEventPacket(targetPlayerTag, force, effectName);
             _networkConnection.SendData(data);
         }
         
