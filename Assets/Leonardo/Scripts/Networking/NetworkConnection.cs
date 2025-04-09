@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Net.Sockets;
 
 namespace Leonardo.Scripts.Networking
@@ -84,17 +83,6 @@ namespace Leonardo.Scripts.Networking
                 if (e.SocketErrorCode != SocketError.WouldBlock)
                 {
                     UnityEngine.Debug.LogError($"NetworkConnection.cs: {e.Message}");
-
-                    //Hamad: adding in Mustafa's code until I figure out integrating heartbeat
-                    //need to add that heartbeat wasn't detected for around 5 seconds
-
-                    if (e.SocketErrorCode == SocketError.ConnectionAborted || e.SocketErrorCode == SocketError.ConnectionReset)
-                    {
-                        Console.WriteLine("Server disconnected");
-                        _socket.Close();
-                        return;
-                    }
-
                 }
             }
         }
@@ -107,10 +95,6 @@ namespace Leonardo.Scripts.Networking
                 _isConnected = false;
                 OnDisconnected?.Invoke();
             }
-
         }
-
-        
-
     }
 }

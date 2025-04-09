@@ -14,8 +14,6 @@ GameObject:
   - component: {fileID: 37651819624171782}
   - component: {fileID: 5324722271781872360}
   - component: {fileID: 9160620850398901883}
-  - component: {fileID: -1742805200395384275}
-  - component: {fileID: 688446593276656521}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -152,49 +150,12 @@ MonoBehaviour:
   moveSpeed: 5
   rotationSpeed: 120
   jumpForce: 5
-  minimumMovementThreshold: 0.05
   groundCheck: {fileID: 0}
   groundDistance: 0.4
   groundMask:
     serializedVersion: 2
     m_Bits: 8
---- !u!114 &-1742805200395384275
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1066179444685803727}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e59ffa14bf069c145b55ac941f5fab77, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  abilities: []
-  ability1Key: 113
-  ability2Key: 101
-  ability3Key: 32
---- !u!114 &688446593276656521
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1066179444685803727}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cdc56c91cbd299d429b1cb5441f35028, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cooldownTime: 1
-  abilityName: Basic Push
-  abilityDescription: Normal but epic push
-  effectName: basiceffect
-  coneAngle: 180
-  coneDistance: 5
-  pushForce: 15
-  useWorldSpace: 1
-  upwardForce: 2
+  rb: {fileID: 0}
 --- !u!1 &6017303658491998304
 GameObject:
   m_ObjectHideFlags: 0

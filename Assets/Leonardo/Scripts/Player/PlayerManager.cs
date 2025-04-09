@@ -1,14 +1,12 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Hamad.Scripts;
 using Hamad.Scripts.Position;
 using Leonardo.Scripts.Controller;
-using Leonardo.Scripts.Effects;
 
 namespace Leonardo.Scripts.Player
 {
-    public class PlayerManager : MonoBehaviour
+    public class PlayerManager
     {
         private GameObject _playerPrefab;
         private Dictionary<int, GameObject> _playerObjects = new Dictionary<int, GameObject>();
@@ -59,32 +57,27 @@ namespace Leonardo.Scripts.Player
         {
             int playerTag = playerPos.playerData.tag;
             Vector3 position = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
-    
+            
             GameObject newPlayer = Object.Instantiate(_playerPrefab, position, Quaternion.identity);
             _playerObjects[playerTag] = newPlayer;
-    
+            
             var controller = newPlayer.GetComponent<PlayerController>();
             if (controller != null)
             {
                 controller.SetLocalplayer(false);
             }
-    
-            var remoteController = newPlayer.AddComponent<RemotePlayerController>();
-            if (remoteController != null)
-            {
-                remoteController.SetPlayerTag(playerTag);
-            }
-    
+            
+            newPlayer.AddComponent<RemotePlayerController>();
             newPlayer.name = $"PlayerManager.cs: RemotePlayer_{playerPos.playerData.name}";
-    
+            
             Debug.LogWarning($"PlayerManager.cs: Created remote player: {playerPos.playerData.name} with tag {playerTag}");
         }
-
+        
         private void UpdateExistingRemotePlayer(PlayerPositionData playerPos)
         {
             int playerTag = playerPos.playerData.tag;
             Vector3 newPosition = new Vector3(playerPos.xPos, playerPos.yPos, playerPos.zPos);
-
+            
             var remoteController = _playerObjects[playerTag].GetComponent<RemotePlayerController>();
             if (remoteController != null)
             {
@@ -96,43 +89,6 @@ namespace Leonardo.Scripts.Player
             }
         }
         
-        public void HandlePushEvent(int playerTag, Vector3 force, string effectName)
-        {
-            //Debug.Log($"PlayerManager.cs: Received push event for player {playerTag}, local player is {_localPlayerData.tag}");
-    
-            if (playerTag == _localPlayerData.tag)
-            {
-                //Debug.Log($"PlayerManager.cs: Push is for local player, applying force {force}");
-                GameObject localPlayer = GetLocalPlayerObject();
-                if (localPlayer != null)
-                {
-                    PlayerController controller = localPlayer.GetComponent<PlayerController>();
-                    if (controller != null)
-                    {
-                        controller.ApplyPushForce(force, effectName);
-                    }
-                    else
-                    {
-                        //Debug.LogError("PlayerManager.cs: Local player has no PlayerController component");
-                    }
-                }
-                else
-                {
-                    //Debug.LogError("PlayerManager.cs: Could not find local player object");
-                }
-            }
-    
-            if (_playerObjects.ContainsKey(playerTag))
-            {
-                GameObject playerObject = _playerObjects[playerTag];
-                if (!string.IsNullOrEmpty(effectName) && EffectManager.Instance != null)
-                {
-                    EffectManager.Instance.PlayEffect(effectName, playerObject.transform.position, playerObject.transform.rotation);
-                }
-            }
-        }
-
-
         public void RemovePlayer(int playerTag)
         {
             if (_playerObjects.ContainsKey(playerTag))
