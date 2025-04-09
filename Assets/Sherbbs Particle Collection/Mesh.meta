@@ -1,9 +1,5 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Assets/Sherbbs Particle Collection/Mesh.meta
 guid: 8148a0c76f37b1f40bfc456241a0a5e5
-========
-guid: fbf67b9ffb435124ca54819967d40ea7
->>>>>>>> f8d6f31 (Revert "Merge branch 'develop' of https://github.com/HKhoory/GPG222_Multiplayer into feature/lobby"):Assets/Sherbbs Particle Collection/Particles.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

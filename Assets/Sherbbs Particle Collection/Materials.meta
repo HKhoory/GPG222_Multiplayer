@@ -1,9 +1,9 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Assets/Sherbbs Particle Collection/Materials.meta
-guid: 466a961815d3d6b4ea8b7adde280ba31
+<<<<<<<< HEAD:Assets/Sherbbs Particle Collection/Particles/Atmosphere.meta
+guid: 2c0e1a933a7d11b4d84bc43c01af4e72
 ========
-guid: 8148a0c76f37b1f40bfc456241a0a5e5
->>>>>>>> f8d6f31 (Revert "Merge branch 'develop' of https://github.com/HKhoory/GPG222_Multiplayer into feature/lobby"):Assets/Sherbbs Particle Collection/Mesh.meta
+guid: 466a961815d3d6b4ea8b7adde280ba31
+>>>>>>>> fed3c3d9209b44a9058141dd429dc14536f4fe79:Assets/Sherbbs Particle Collection/Materials.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
