@@ -1,5 +1,3 @@
-using Leonardo.Scripts.Abilities;
-using Leonardo.Scripts.Effects;
 using UnityEngine;
 
 namespace Leonardo.Scripts.Controller
@@ -23,16 +21,14 @@ namespace Leonardo.Scripts.Controller
 
         [SerializeField] private float groundDistance = 0.4f;
         [SerializeField] private LayerMask groundMask;
-        
-        private Rigidbody _rb;
-        private AbilityManager _abilityManager;
+
+        [Header("- References")] [SerializeField]
+        private Rigidbody rb;
 
         private Vector3 _movement;
         private Vector3 _previousPosition;
         private bool _isGrounded;
         private bool _isLocalPlayer = true;
-        
-        public bool IsLocalPlayer => _isLocalPlayer;
 
         #region Unity Methods
 
@@ -69,8 +65,8 @@ namespace Leonardo.Scripts.Controller
             if (!_isLocalPlayer) return;
 
             // Apply movement.
-            Vector3 velocity = new Vector3(_movement.x, _rb.velocity.y, _movement.z);
-            _rb.velocity = velocity;
+            Vector3 velocity = new Vector3(_movement.x, rb.velocity.y, _movement.z);
+            rb.velocity = velocity;
         }
         
         private void LateUpdate()
@@ -100,7 +96,7 @@ namespace Leonardo.Scripts.Controller
         /// </summary>
         private void Jump()
         {
-            _rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
 
         /// <summary>
@@ -109,15 +105,9 @@ namespace Leonardo.Scripts.Controller
         private void InitializeComponents()
         {
             // Get components if not assigned.
-            if (_rb == null)
-                _rb = GetComponent<Rigidbody>();
+            if (rb == null)
+                rb = GetComponent<Rigidbody>();
 
-            _abilityManager = GetComponent<AbilityManager>();
-            if (_abilityManager == null && _isLocalPlayer)
-            {
-                _abilityManager = gameObject.AddComponent<AbilityManager>(); // more dummy proofing lol.
-            }
-            
             // Create ground check if not assigned (DUMMY PROOFING).
             if (groundCheck == null)
             {
@@ -128,11 +118,16 @@ namespace Leonardo.Scripts.Controller
             }
 
             // Dummy proofing (Im setting the rigidbody rotation freeze).
-            if (_rb != null)
+            if (rb != null)
             {
-                _rb.isKinematic = false;
-                _rb.useGravity = true;
-                _rb.freezeRotation = true;
+                // For remote players, use kinematic to let network positioning control them.
+                rb.isKinematic = !_isLocalPlayer;
+                
+                // Only apply gravity to local player.
+                rb.useGravity = _isLocalPlayer;
+                
+                // Prevent rigidbody from rotating the player.
+                rb.freezeRotation = true;
             }
         }
 
@@ -149,36 +144,11 @@ namespace Leonardo.Scripts.Controller
                 GetComponent<Renderer>().material.color = isLocalPlayer ? Color.blue : Color.red;
             }
             
-            if (_rb != null)
+            if (rb != null)
             {
-                //_rb.isKinematic = !_isLocalPlayer;
-                //_rb.useGravity = _isLocalPlayer;
+                rb.isKinematic = !_isLocalPlayer;
+                rb.useGravity = _isLocalPlayer;
             }
-        }
-        
-        public void ApplyPushForce(Vector3 force, string effectName)
-        {
-            if (!_isLocalPlayer) return;
-    
-            if (!string.IsNullOrEmpty(effectName) && EffectManager.Instance != null)
-            {
-                EffectManager.Instance.PlayEffect(effectName, transform.position, transform.rotation);
-            }
-    
-            if (_rb != null)
-            {
-                _rb.AddForce(force, ForceMode.Impulse);
-                //Debug.Log($"PlayerController.cs: Applied push force {force} to local player");
-            }
-        }
-        
-        /// <summary>
-        /// Get the ability manager script from the player.
-        /// </summary>
-        /// <returns>The ability manager attached to this player.</returns>
-        public AbilityManager GetAbilityManager()
-        {
-            return _abilityManager;
         }
 
         #endregion

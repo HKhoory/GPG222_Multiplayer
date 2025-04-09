@@ -19,8 +19,7 @@ namespace Hamad.Scripts
             PlayersPositionData,
             PlayersRotationData,
             Ping,
-            PingResponse,
-            PushEvent
+            PingResponse
         }
 
         public PacketType packetType;
