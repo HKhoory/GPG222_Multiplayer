@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Sherbbs Particle Collection/Particles/Atmosphere.meta
 guid: 2c0e1a933a7d11b4d84bc43c01af4e72
+========
+guid: 466a961815d3d6b4ea8b7adde280ba31
+>>>>>>>> fed3c3d9209b44a9058141dd429dc14536f4fe79:Assets/Sherbbs Particle Collection/Materials.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

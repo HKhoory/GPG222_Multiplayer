@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Sherbbs Particle Collection/Particles.meta
 guid: fbf67b9ffb435124ca54819967d40ea7
+========
+guid: ee131f114b1538144be79dca29898f67
+>>>>>>>> fed3c3d9209b44a9058141dd429dc14536f4fe79:Assets/Sherbbs Particle Collection.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
