@@ -10,6 +10,7 @@ using Hamad.Scripts.Rotation;
 using Leonardo.Scripts;
 using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Networking;
+using Leonardo.Scripts.Packets;
 
 namespace Dyson_GPG222_Server
 {
@@ -248,6 +249,13 @@ namespace Dyson_GPG222_Server
                                 }
                             }
                         }
+                        break;
+                    
+                    // Leo: this is for pushing
+                    case Packet.PacketType.PushEvent:
+                        PushEventPacket pushPacket = new PushEventPacket().Deserialize(data);
+                        Debug.Log($"Server.cs: Received push event targeting player with tag {pushPacket.TargetPlayerTag}");
+                        Broadcast(basePacket.packetType, data, clientId);
                         break;
 
                     default:
