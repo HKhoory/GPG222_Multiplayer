@@ -20,6 +20,13 @@ namespace Leonardo.Scripts.Networking
         public event Action OnPingResponseReceived;
         public event Action<int, Vector3, string> OnPushEventReceived;
 
+        //Hamad: adding event for HeartBeatReceived
+        public event Action OnHeartbeatReceived;
+
+        //Hamad: Adding variables for HeartBeat
+        private int failedHeartbeats;
+        private float heartbeatInterval = 1f;
+
         private PlayerData _localPlayerData;
 
         public PacketHandler(PlayerData localPlayerData)
@@ -66,6 +73,17 @@ namespace Leonardo.Scripts.Networking
                         }
                         break;
 
+                    case Packet.PacketType.Heartbeat:
+                        try
+                        {
+                            OnHeartbeatReceived();
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError("No heartbeat byte found");
+                        }
+                        break;
+
                     default:
                         Debug.LogWarning($"PacketHandler.cs: Unknown packet type received: {basePacket.packetType}");
                         break;
@@ -100,6 +118,12 @@ namespace Leonardo.Scripts.Networking
         private void ProcessPingResponsePacket()
         {
             OnPingResponseReceived?.Invoke();
+        }
+
+        //Hamad: adding the heartbeat action
+        private void ProcessHeartbeatPacket()
+        {
+            OnHeartbeatReceived?.Invoke();
         }
 
         private void ProcessPushEventPacket(byte[] data)

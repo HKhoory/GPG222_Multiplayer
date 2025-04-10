@@ -25,10 +25,6 @@ namespace Leonardo.Scripts.ClientRelated
         private PingMeter _pingMeter;
         
         private float _nextUpdateTime;
-
-        //Hamad: Adding variables for HeartBeat
-        private int failedHeartbeats;
-        private float heartbeatInterval = 1f;
         
         public PlayerData LocalPlayer { get; private set; }
         public bool IsConnected => _networkConnection?.IsConnected ?? false;
@@ -137,13 +133,11 @@ namespace Leonardo.Scripts.ClientRelated
         public void SendHeartBeat()
         {
 
+            if (!IsConnected) return;
 
+            byte[] data = _packetHandler.CreateHeartbeatPacket(0x01);
+            _networkConnection.SendData(data);
 
-
-            if (failedHeartbeats > 5)
-            {
-                //disconnect and despawn the player
-            }
 
         }
 
