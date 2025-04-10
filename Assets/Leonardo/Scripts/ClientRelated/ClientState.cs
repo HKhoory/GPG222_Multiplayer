@@ -23,5 +23,11 @@ namespace Leonardo.Scripts.ClientRelated
         /// Buffer used for receiving data from this client.
         /// </summary>
         public byte[] Buffer;
+        
+        /// <summary>
+        /// Boolean to check if the player is ready in the lobby.
+        /// </summary>
+        /// </summary>
+        public bool isReady;
     }
 }
