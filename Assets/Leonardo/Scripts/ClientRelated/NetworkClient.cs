@@ -65,6 +65,10 @@ namespace Leonardo.Scripts.ClientRelated
             _packetHandler.OnPingResponseReceived += OnPingResponse;
             _packetHandler.OnPushEventReceived += _playerManager.HandlePushEvent;
 
+            //Hamad: Adding in HeartbeatReceived event
+
+            _packetHandler.OnHeartbeatReceived += _networkConnection.CheckHeartbeat;
+
             
             // Connect to server.
             if (_networkConnection.Connect())

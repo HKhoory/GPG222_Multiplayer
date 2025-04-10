@@ -23,10 +23,6 @@ namespace Leonardo.Scripts.Networking
         //Hamad: adding event for HeartBeatReceived
         public event Action OnHeartbeatReceived;
 
-        //Hamad: Adding variables for HeartBeat
-        private int failedHeartbeats;
-        private float heartbeatInterval = 1f;
-
         private PlayerData _localPlayerData;
 
         public PacketHandler(PlayerData localPlayerData)

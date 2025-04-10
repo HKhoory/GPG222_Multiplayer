@@ -16,7 +16,12 @@ namespace Leonardo.Scripts.Networking
         public event Action OnDisconnected;
         
         public bool IsConnected => _isConnected;
-        
+
+        //Hamad: Adding variables for HeartBeat
+        private int failedHeartbeats;
+        private float heartbeatInterval = 1f;
+
+
         public NetworkConnection(string ipAddress, int port)
         {
             this.ipAddress = ipAddress;
@@ -98,6 +103,27 @@ namespace Leonardo.Scripts.Networking
                 }
             }
         }
+
+        public void CheckHeartbeat()
+        {
+
+            //how to check if the heartbeat packet is received successfully
+
+            if (heartbeatInterval <= 0)
+            {
+                failedHeartbeats++;
+                heartbeatInterval = 1f;
+            }
+
+            if (failedHeartbeats > 5)
+            {
+                //disconnect from server
+                //return;
+            }
+
+
+        }
+
         
         public void Disconnect()
         {
