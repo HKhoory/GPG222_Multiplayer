@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using Leonardo.Scripts.ClientRelated;
 using UnityEngine;
 
@@ -14,21 +15,33 @@ namespace Dyson.GPG222.Lobby
         public GameObject newPlayer;
 
         public Transform containerParent;
-        // Update is called once per frame
-
-        private void Start()
-        {
-            players = new List<ClientState>();
-        }
-
-        void Update()
-        {
-            PlayerJoinedLobby();
-        }
+        
+        public ClientState testPlayer;
+        
 
         private void PlayerJoinedLobby()
         {
-            Instantiate(newPlayer, containerParent);
+            
+        }
+        
+        public void AddPlayerToLobby(ClientState newPlayerState, TcpClient client, int playerId)
+        {
+            players.Add(newPlayerState);
+            testPlayer.Client = client;
+            testPlayer.ClientId = playerId;
+            testPlayer.isReady = false;
+            GameObject playerUI = Instantiate(newPlayer, containerParent);
+
+            PlayerInLobby display = playerUI.GetComponent<PlayerInLobby>();
+
+            if (display != null)
+            {
+                display.Setup(newPlayerState);
+            }
+        }
+        public void ReadyButton()
+        {
+            testPlayer.isReady = true;
         }
 
         private void CreateLobby()
