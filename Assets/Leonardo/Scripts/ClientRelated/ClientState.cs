@@ -7,7 +7,7 @@ namespace Leonardo.Scripts.ClientRelated
     /// <summary>
     /// This class holds state information for connected clients during async operations.
     /// </summary>
-    public class ClientState
+    public class ClientState : MonoBehaviour
     {
         /// <summary>
         /// The TcpClient instance for this connection.
