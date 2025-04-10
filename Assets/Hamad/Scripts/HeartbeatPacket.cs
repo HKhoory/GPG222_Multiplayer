@@ -15,6 +15,12 @@ namespace Hamad.Scripts.Heartbeat
             heartbeat = 0x01;
         }
 
+        public HeartbeatPacket(PlayerData playerData, byte playerHeartbeat)
+        {
+            this.playerData = playerData;
+            heartbeat = playerHeartbeat;
+        }
+
         public byte[] Serialize()
         {
             BeginSerialize();
