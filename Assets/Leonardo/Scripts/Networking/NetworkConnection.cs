@@ -18,8 +18,8 @@ namespace Leonardo.Scripts.Networking
         public bool IsConnected => _isConnected;
 
         //Hamad: Adding variables for HeartBeat
-        private int failedHeartbeats;
-        private float heartbeatInterval = 1f;
+        
+        private float heartbeatInterval = 5f;
 
 
         public NetworkConnection(string ipAddress, int port)
@@ -53,6 +53,8 @@ namespace Leonardo.Scripts.Networking
         
         public void Update()
         {
+            heartbeatInterval -= 0.01f; //deducting the interval
+
             if (_socket != null && _socket.Connected && _socket.Available > 0)
             {
                 try
@@ -104,22 +106,23 @@ namespace Leonardo.Scripts.Networking
             }
         }
 
+
+        //Gets called if the heartbeat exists
         public void CheckHeartbeat()
         {
 
-            //how to check if the heartbeat packet is received successfully
-
             if (heartbeatInterval <= 0)
             {
-                failedHeartbeats++;
-                heartbeatInterval = 1f;
+
+                Disconnect();
+
             }
 
-            if (failedHeartbeats > 5)
+            else
             {
-                //disconnect from server
-                //return;
+                heartbeatInterval = 5f;
             }
+
 
 
         }

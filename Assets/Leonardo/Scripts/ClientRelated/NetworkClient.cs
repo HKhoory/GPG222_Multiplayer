@@ -67,7 +67,7 @@ namespace Leonardo.Scripts.ClientRelated
 
             //Hamad: Adding in HeartbeatReceived event
 
-            _packetHandler.OnHeartbeatReceived += _networkConnection.CheckHeartbeat;
+            _packetHandler.OnHeartbeat += _networkConnection.CheckHeartbeat;
 
             
             // Connect to server.
