@@ -146,6 +146,14 @@ namespace Leonardo.Scripts.ClientRelated
             _networkConnection.SendData(data);
         }
 
+        public void SendRestartPacket(bool reset)
+        {
+            if (!IsConnected) return;
+
+            byte[] data = _packetHandler.CreateRestartPacket(reset);
+            _networkConnection.SendData(data);
+        }
+
         public void OnConnectedToServer()
         {
             _playerData = new PlayerData("Test", 1);

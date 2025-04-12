@@ -24,7 +24,7 @@ namespace Hamad.Scripts
             PushEvent,
             Heartbeat,
             JoinLobby,
-            Pause
+            Restart
         }
 
         public PacketType packetType;

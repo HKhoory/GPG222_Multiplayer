@@ -14,6 +14,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject[] players;
     [SerializeField] private GameObject[] lostPlayers;
 
+    [SerializeField] private bool restartGame;
+
     private void Awake()
     {
         if (Instance == null)
@@ -32,7 +34,8 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        //set restart to false
+        restartGame = false;
     }
 
     // Update is called once per frame
