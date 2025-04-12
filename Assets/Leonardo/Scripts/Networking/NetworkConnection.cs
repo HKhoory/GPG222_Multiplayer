@@ -137,6 +137,13 @@ namespace Leonardo.Scripts.Networking
                 OnDisconnected?.Invoke();
             }
 
+            else if (heartbeatInterval <= 0)
+            {
+                _socket.Close();
+                _isConnected = false;
+                OnDisconnected?.Invoke();
+            }
+
         }
 
         

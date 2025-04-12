@@ -40,6 +40,16 @@ namespace Leonardo.Scripts.Player
             newPlayer.name = $"PlayerManager.cs: LocalPlayer_{_localPlayerData.name}";
             Debug.LogWarning($"PlayerManager.cs: Local player: {_localPlayerData.name} spawned at {position}");
         }
+
+
+        //Hamad: adding function if the game resets, (really stupid way but I wanna see if it works)
+        public void RespawnLocalPlayer(PlayerPositionData playerPos)
+        {
+            Vector3 position = new Vector3(Random.Range(-2f, 2f), 1, Random.Range(-2f, 2f));
+            GameObject localPlayer = GetLocalPlayerObject();
+            localPlayer.transform.position = new Vector3(0, 1, 0);
+
+        }
         
         public void UpdateRemotePlayerPosition(PlayerPositionData playerPos)
         {
