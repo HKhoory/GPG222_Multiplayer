@@ -1,7 +1,10 @@
+using System;
+using Dyson.GPG222.Lobby;
 using UnityEngine;
 using Hamad.Scripts;
 using Leonardo.Scripts.Networking;
 using Leonardo.Scripts.Player;
+using Random = UnityEngine.Random;
 
 namespace Leonardo.Scripts.ClientRelated
 {
@@ -23,7 +26,8 @@ namespace Leonardo.Scripts.ClientRelated
         private PacketHandler _packetHandler;
         private PlayerManager _playerManager;
         private PingMeter _pingMeter;
-        
+        private PlayerData _playerData;
+        private LobbyPacket _lobbyPacket;
         private float _nextUpdateTime;
         
         public PlayerData LocalPlayer { get; private set; }
@@ -136,16 +140,20 @@ namespace Leonardo.Scripts.ClientRelated
 
         public void SendHeartBeat()
         {
-
             if (!IsConnected) return;
 
             byte[] data = _packetHandler.CreateHeartbeatPacket(0x01);
             _networkConnection.SendData(data);
-
-
         }
 
-        
+        public void OnConnectedToServer()
+        {
+            _playerData = new PlayerData("Test", 1);
+            _lobbyPacket = new LobbyPacket();
+            _lobbyPacket.SendLobbyPacket();
+        }
+
+
         private void OnDestroy()
         {
             _networkConnection?.Disconnect();

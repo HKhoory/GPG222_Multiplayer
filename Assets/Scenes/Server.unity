@@ -155,6 +155,8 @@ MonoBehaviour:
   maxPlayers: 4
   port: 2121
   startServerOnAwake: 1
+  lobby: {fileID: 0}
+  _joinLobby: {fileID: 0}
 --- !u!4 &386635319
 Transform:
   m_ObjectHideFlags: 0
@@ -195,7 +197,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 840536257}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &840536259
 Camera:
   m_ObjectHideFlags: 0

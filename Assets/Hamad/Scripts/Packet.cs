@@ -1,4 +1,5 @@
 using System.IO;
+using UnityEngine;
 
 namespace Hamad.Scripts
 {
@@ -42,6 +43,11 @@ namespace Hamad.Scripts
 
         protected void BeginSerialize()
         {
+          /*  if (playerData == null)
+            {
+                Debug.LogError("playerData is null during serialization!");
+                return;
+            } */
             _memoryStreamWriter = new MemoryStream();
             _binaryWriter = new BinaryWriter(_memoryStreamWriter);
             _binaryWriter.Write((int)packetType);

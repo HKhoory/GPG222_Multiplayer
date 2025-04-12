@@ -12,11 +12,11 @@ public class PlayerInLobby : MonoBehaviour
     public void Setup(ClientState clientState)
     {
         playerIdText.GetComponent<TextMeshPro>().text = clientState.ClientId.ToString();
-        Invoke("GoToGame", 2.0f);
+      //  Invoke("GoToGame", 2.0f);
     }
 
     public void GoToGame()
     {
-        SceneManager.LoadScene("Scenes/Client");
+        // SceneManager.LoadScene("Scenes/Client");
     }
 }

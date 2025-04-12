@@ -7,7 +7,7 @@ public class ButtonColorChange : MonoBehaviour
 {
     public Button button;
 
-    private bool isButtonPressed = false;
+    public bool isButtonPressed = false;
     
     // Start is called before the first frame update
     void Start()
@@ -19,6 +19,6 @@ public class ButtonColorChange : MonoBehaviour
     {
         Color newColor = isButtonPressed ? Color.red : Color.green;
         button.GetComponent<Image>().color = newColor;
-        isButtonPressed = false;
+        isButtonPressed = true;
     }
 }

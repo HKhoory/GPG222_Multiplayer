@@ -9,16 +9,21 @@ namespace Dyson.GPG222.Lobby
 {
     public class LobbyPacket : Packet
     {
-        private NetworkConnection _networkConnection;
-        private PlayerData _playerData;
-        public LobbyPacket(NetworkConnection connection, PlayerData playerData) : base(PacketType.JoinLobby, null)
+        public NetworkConnection _networkConnection;
+        public PlayerData _playerData;
+        
+        public LobbyPacket() : base(PacketType.JoinLobby, null)
         {
-            _networkConnection = connection;
             _playerData = playerData;
         }
 
         public byte[] Serialize()
         {
+            if (_playerData == null)
+            {
+                Debug.LogError("player data is null");
+                return null;
+            }
             BeginSerialize();
 
             return EndSerialize();
@@ -26,8 +31,9 @@ namespace Dyson.GPG222.Lobby
 
         public void SendLobbyPacket()
         {
-            var joinLobbyPacket = new LobbyPacket(_networkConnection, _playerData);
-            byte[] data = joinLobbyPacket.Serialize();
+            _playerData = new PlayerData("test", 123);
+           // var joinLobbyPacket = new LobbyPacket(_networkConnection, _playerData);
+            byte[] data = Serialize();
             _networkConnection.SendData(data);
         }
         

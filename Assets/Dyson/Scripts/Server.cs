@@ -33,6 +33,7 @@ namespace Dyson_GPG222_Server
         private static Dictionary<int, PlayerData> connectedPlayers = new Dictionary<int, PlayerData>();
         public NetworkConnection networkConnection;
         public Lobby lobby;
+        public JoinLobby _joinLobby;
 
         private void Awake()
         {
@@ -264,9 +265,19 @@ namespace Dyson_GPG222_Server
                         Debug.Log($"Server.cs: Unknown packet type received.");
                         break;
                     case Packet.PacketType.JoinLobby:
-                        PlayerData playerData;
-                        lobby.AddPlayerToLobby(lobby.testPlayer, lobby.testPlayer.Client, lobby.testPlayer.ClientId);
-                        Debug.Log($"{lobby.testPlayer.ClientId} is joining the lobby!");
+                        LobbyPacket lobbyPacket = new LobbyPacket().Deserialize(data);
+                        ClientState newPlayer = new ClientState();
+                        newPlayer.Client = clients[clientId].Socket;
+                        newPlayer.ClientId = clientId;
+                        lobby.AddPlayerToLobby(newPlayer);
+                        connectedPlayers[clientId] = lobbyPacket._playerData;
+                        if (connectedPlayers.Count >= MaxPlayers)
+                        {
+                          Debug.Log("All players are in the lobby, we can start the game!");
+                          _joinLobby.StartGame();
+                        }
+                        Debug.Log($"{newPlayer.ClientId} is joining the lobby!");
+                        Broadcast(basePacket.packetType, data, clientId);
                         break;
                 }
             }
