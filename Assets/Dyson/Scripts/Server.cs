@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Net;
 using System.Net.Sockets;
+using Dyson.GPG222.Lobby;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
@@ -11,7 +12,7 @@ using Leonardo.Scripts;
 using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Networking;
 using Leonardo.Scripts.Packets;
-
+using UnityEngine.SceneManagement;
 namespace Dyson_GPG222_Server
 {
     public class Server : MonoBehaviour
@@ -30,6 +31,8 @@ namespace Dyson_GPG222_Server
         private static TcpListener tcpListener;
         private static Dictionary<int, ClientHandler> clients = new Dictionary<int, ClientHandler>();
         private static Dictionary<int, PlayerData> connectedPlayers = new Dictionary<int, PlayerData>();
+        public NetworkConnection networkConnection;
+        public Lobby lobby;
 
         private void Awake()
         {
@@ -79,7 +82,7 @@ namespace Dyson_GPG222_Server
 
             string endpoint = client.Client.RemoteEndPoint.ToString();
             Debug.LogWarning($"Server.cs: New player connected from endpoint: {endpoint}");
-
+            SceneManager.LoadScene("Scenes/Lobby");
             // Check if this client is already connected
             bool alreadyConnected = false;
             int existingClientId = -1;
@@ -170,7 +173,6 @@ namespace Dyson_GPG222_Server
 
                 byte[] data = new byte[bytesRead];
                 Array.Copy(state.Buffer, data, bytesRead);
-                ProcessReceivedData(data, state.ClientId);
 
                 stream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
             }
@@ -184,7 +186,7 @@ namespace Dyson_GPG222_Server
             }
         }
 
-        private static void ProcessReceivedData(byte[] data, int clientId)
+        private void ProcessReceivedData(byte[] data, int clientId)
         {
             try
             {
@@ -260,6 +262,11 @@ namespace Dyson_GPG222_Server
 
                     default:
                         Debug.Log($"Server.cs: Unknown packet type received.");
+                        break;
+                    case Packet.PacketType.JoinLobby:
+                        PlayerData playerData;
+                        lobby.AddPlayerToLobby(lobby.testPlayer, lobby.testPlayer.Client, lobby.testPlayer.ClientId);
+                        Debug.Log($"{lobby.testPlayer.ClientId} is joining the lobby!");
                         break;
                 }
             }

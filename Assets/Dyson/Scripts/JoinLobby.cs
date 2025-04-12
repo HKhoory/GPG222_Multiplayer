@@ -15,7 +15,7 @@ namespace Dyson.GPG222.Lobby
         public ClientState playersId;
         public Lobby _lobby;
         public TcpClient client;
-
+        public LobbyPacket _lobbyPacket;
         private void Start()
         {
             playersId = new ClientState();
@@ -31,7 +31,8 @@ namespace Dyson.GPG222.Lobby
             joinLobbyCanvas.SetActive(false);
             lobbyCanvas.SetActive(true);
             Debug.Log("Who joined my lobby?: " + playersId.ClientId);
-            
+
+            _lobbyPacket.SendLobbyPacket();
             if (_lobby != null)
             {
                 _lobby.AddPlayerToLobby(playersId, client, playersId.ClientId);
