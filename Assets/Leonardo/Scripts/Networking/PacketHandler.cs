@@ -28,6 +28,7 @@ namespace Leonardo.Scripts.Networking
 
         public event Action<byte> OnRestart;
 
+        public event Action<byte[]> OnJoiningLobby; 
         private PlayerData _localPlayerData;
 
         public PacketHandler(PlayerData localPlayerData)
@@ -94,7 +95,16 @@ namespace Leonardo.Scripts.Networking
                             Debug.LogError("No restart packet found");
                         }
                         break;
-
+                    case Packet.PacketType.JoinLobby:
+                        try
+                        {
+                            ProcessJoiningLobby(data);
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError("No lobby found");
+                        }
+                        break;
                     default:
                         Debug.LogWarning($"PacketHandler.cs: Unknown packet type received: {basePacket.packetType}");
                         break;
@@ -143,6 +153,16 @@ namespace Leonardo.Scripts.Networking
             }
         }
 
+        private void ProcessJoiningLobby(byte[] data)
+        {
+         //   byte lobby = data[0];
+
+            if (data != null)
+            {
+                LobbyPacket lobbyPacket = new LobbyPacket().Deserialize(data);
+                OnJoiningLobby?.Invoke(data);
+            }
+        }
         private void ProcessRestartPacket(byte[] data)
         {
 

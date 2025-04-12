@@ -68,15 +68,17 @@ namespace Leonardo.Scripts.ClientRelated
             _packetHandler.OnPositionReceived += _playerManager.UpdateRemotePlayerPosition;
             _packetHandler.OnPingResponseReceived += OnPingResponse;
             _packetHandler.OnPushEventReceived += _playerManager.HandlePushEvent;
-
+            
             //Hamad: Adding in HeartbeatReceived event
 
             _packetHandler.OnHeartbeat += _networkConnection.CheckHeartbeat;
 
-            
+            //Dyson: Adding LobbyEvent
+            _packetHandler.OnJoiningLobby += _packetHandler.ProcessPacket;
             // Connect to server.
             if (_networkConnection.Connect())
             {
+                OnLobbyConnected();
                 SendMessagePacket("Connected, hi!");
                 _playerManager.SpawnLocalPlayer();
             }
