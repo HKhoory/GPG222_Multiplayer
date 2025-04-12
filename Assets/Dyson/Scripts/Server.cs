@@ -266,17 +266,17 @@ namespace Dyson_GPG222_Server
                     case Packet.PacketType.JoinLobby:
                         LobbyPacket lobbyPacket = new LobbyPacket().Deserialize(data);
                         Debug.Log("test test test");
-                        ClientState newPlayer = new ClientState();
+                       /* ClientState newPlayer = new ClientState();
                         newPlayer.Client = clients[clientId].Socket;
                         newPlayer.ClientId = clientId;
                         lobby.AddPlayerToLobby(newPlayer);
-                        connectedPlayers[clientId] = lobbyPacket._playerData;
+                        connectedPlayers[clientId] = lobbyPacket._playerData; */
                        if (connectedPlayers.Count >= MaxPlayers)
                        {
                             Debug.Log("All players are in the lobby, we can start the game!");
                             SceneManager.LoadScene("Scenes/Client");
                         }
-                        Debug.Log($"{newPlayer.ClientId} is joining the lobby!");
+                       // Debug.Log($"{newPlayer.ClientId} is joining the lobby!");
                         Broadcast(basePacket.packetType, data, clientId);
                         break;
                     default:
