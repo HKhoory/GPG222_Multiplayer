@@ -11,6 +11,7 @@ using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Controller;
 using Leonardo.Scripts.Packets;
 using Leonardo.Scripts.Player;
+using Hamad.Scripts.Restart;
 
 namespace Leonardo.Scripts.Networking
 {
@@ -21,9 +22,11 @@ namespace Leonardo.Scripts.Networking
         public event Action OnPingResponseReceived;
         public event Action<int, Vector3, string> OnPushEventReceived;
 
-        //Hamad: adding event for HeartBeatReceived
+        //Hamad: adding event for HeartBeatReceived and Restart
         public event Action OnHeartbeat;
         public event Action<byte> OnHeartbeatReceived;
+
+        public event Action<byte> OnRestart;
 
         private PlayerData _localPlayerData;
 
@@ -81,6 +84,16 @@ namespace Leonardo.Scripts.Networking
                             Debug.LogError("No heartbeat byte found");
                         }
                         break;
+                    case Packet.PacketType.Restart:
+                        try
+                        {
+                            ProcessRestartPacket(data);
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError("No restart packet found");
+                        }
+                        break;
 
                     default:
                         Debug.LogWarning($"PacketHandler.cs: Unknown packet type received: {basePacket.packetType}");
@@ -118,7 +131,7 @@ namespace Leonardo.Scripts.Networking
             OnPingResponseReceived?.Invoke();
         }
 
-        //Hamad: adding the heartbeat action
+        //Hamad: adding the heartbeat and restart action
         private void ProcessHeartbeatPacket(byte[] data)
         {
 
@@ -127,6 +140,19 @@ namespace Leonardo.Scripts.Networking
                 HeartbeatPacket heartbeatPacket = new HeartbeatPacket().Deserialize(data);
                 OnHeartbeatReceived?.Invoke(heartbeat);
                 OnHeartbeat?.Invoke();
+            }
+        }
+
+        private void ProcessRestartPacket(byte[] data)
+        {
+
+            byte reset = data[0];
+            bool isReset = reset != 0;
+
+            if (data != null)
+            {
+                RestartPacket restartPacket = new RestartPacket().Deserialize(data);
+                OnRestart?.Invoke(reset);
             }
         }
 
@@ -221,6 +247,13 @@ namespace Leonardo.Scripts.Networking
         {
             LobbyPacket lobbyPacket = new LobbyPacket(_localPlayerData);
             return lobbyPacket.Serialize();
+        }
+
+        public byte[] CreateRestartPacket(bool reset)
+        {
+            RestartPacket restartPacket = new RestartPacket(_localPlayerData, reset);
+            return restartPacket.Serialize();
+
         }
 
     }
