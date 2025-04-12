@@ -145,7 +145,14 @@ namespace Leonardo.Scripts.ClientRelated
             byte[] data = _packetHandler.CreateHeartbeatPacket(0x01);
             _networkConnection.SendData(data);
         }
+        
+        public void SendRestartPacket(bool reset)
+        {
+            if (!IsConnected) return;
 
+            byte[] data = _packetHandler.CreateRestartPacket(reset);
+            _networkConnection.SendData(data);
+        }
         public void OnLobbyConnected()
         {
             if (!IsConnected) return;
