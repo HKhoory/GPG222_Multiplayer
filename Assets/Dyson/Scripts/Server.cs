@@ -39,6 +39,7 @@ namespace Dyson_GPG222_Server
         {
             instance = this;
         }
+        
 
         public void Start()
         {
@@ -83,7 +84,6 @@ namespace Dyson_GPG222_Server
 
             string endpoint = client.Client.RemoteEndPoint.ToString();
             Debug.LogWarning($"Server.cs: New player connected from endpoint: {endpoint}");
-            SceneManager.LoadScene("Scenes/Lobby");
             // Check if this client is already connected
             bool alreadyConnected = false;
             int existingClientId = -1;
@@ -191,6 +191,7 @@ namespace Dyson_GPG222_Server
         {
             try
             {
+                Debug.Log("Received packet on server!");
                 Packet basePacket = new Packet();
                 basePacket.Deserialize(data);
 
@@ -259,25 +260,27 @@ namespace Dyson_GPG222_Server
                         PushEventPacket pushPacket = new PushEventPacket().Deserialize(data);
                         Debug.Log($"Server.cs: Received push event targeting player with tag {pushPacket.TargetPlayerTag}");
                         Broadcast(basePacket.packetType, data, clientId);
+                        Debug.Log($"Received packet type: {basePacket.packetType}");
                         break;
-
-                    default:
-                        Debug.Log($"Server.cs: Unknown packet type received.");
-                        break;
+                    
                     case Packet.PacketType.JoinLobby:
                         LobbyPacket lobbyPacket = new LobbyPacket().Deserialize(data);
+                        Debug.Log("test test test");
                         ClientState newPlayer = new ClientState();
                         newPlayer.Client = clients[clientId].Socket;
                         newPlayer.ClientId = clientId;
                         lobby.AddPlayerToLobby(newPlayer);
                         connectedPlayers[clientId] = lobbyPacket._playerData;
-                        if (connectedPlayers.Count >= MaxPlayers)
-                        {
-                          Debug.Log("All players are in the lobby, we can start the game!");
-                          _joinLobby.StartGame();
+                       if (connectedPlayers.Count >= MaxPlayers)
+                       {
+                            Debug.Log("All players are in the lobby, we can start the game!");
+                            SceneManager.LoadScene("Scenes/Client");
                         }
                         Debug.Log($"{newPlayer.ClientId} is joining the lobby!");
                         Broadcast(basePacket.packetType, data, clientId);
+                        break;
+                    default:
+                        Debug.Log($"Server.cs: Unknown packet type received.");
                         break;
                 }
             }
@@ -286,7 +289,7 @@ namespace Dyson_GPG222_Server
                 Debug.LogError($"Server.cs: Error processing data: {e.Message}");
             }
         }
-
+        
         private static void SendAllPlayersInfo(int newClientId)
         {
             // Don't send anything if its the first one since there is no one to receive.

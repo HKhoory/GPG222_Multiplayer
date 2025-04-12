@@ -146,11 +146,16 @@ namespace Leonardo.Scripts.ClientRelated
             _networkConnection.SendData(data);
         }
 
-        public void OnConnectedToServer()
+        public void OnLobbyConnected()
         {
-            _playerData = new PlayerData("Test", 1);
-            _lobbyPacket = new LobbyPacket();
-            _lobbyPacket.SendLobbyPacket();
+            if (!IsConnected) return;
+
+            byte[] data = _packetHandler.CreateLobbyPacket();
+            _networkConnection.SendData(data);
+        }
+        public NetworkConnection GetConnection()
+        {
+            return _networkConnection;
         }
 
 

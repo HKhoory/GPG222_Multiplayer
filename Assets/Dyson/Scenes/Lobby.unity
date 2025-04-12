@@ -669,6 +669,7 @@ GameObject:
   - component: {fileID: 623379792}
   - component: {fileID: 623379794}
   - component: {fileID: 623379795}
+  - component: {fileID: 623379796}
   m_Layer: 0
   m_Name: Lobby
   m_TagString: Untagged
@@ -693,6 +694,7 @@ MonoBehaviour:
   players: []
   clientPlayer: {fileID: 623379795}
   _lobby: {fileID: 623379794}
+  _networkClient: {fileID: 623379796}
   _lobbyButton: {fileID: 1468901830}
 --- !u!4 &623379793
 Transform:
@@ -742,6 +744,24 @@ MonoBehaviour:
   ClientId: 23
   Buffer: 
   isReady: 0
+--- !u!114 &623379796
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 623379791}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34a5ff0dba99cc94da07a288ea5d577b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerNamePrefix: Client-Player
+  ipAddress: 127.0.0.1
+  connectionOnStart: 1
+  port: 2121
+  playerPrefab: {fileID: 0}
+  updateInterval: 0.1
 --- !u!1001 &960206059
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -750,6 +770,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 918407854715360560, guid: a4dc6a2105e07d943a761332b5d762ad, type: 3}
+      propertyPath: _client
+      value: 
+      objectReference: {fileID: 623379795}
     - target: {fileID: 3490928597594908478, guid: a4dc6a2105e07d943a761332b5d762ad, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -1179,7 +1203,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1848754177
 MonoBehaviour:
   m_ObjectHideFlags: 0

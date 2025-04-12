@@ -214,6 +214,14 @@ namespace Leonardo.Scripts.Networking
             return heartbeatPacket.Serialize();
 
         }
+        
+        //Dyson: Create function for lobby
+
+        public byte[] CreateLobbyPacket()
+        {
+            LobbyPacket lobbyPacket = new LobbyPacket(_localPlayerData);
+            return lobbyPacket.Serialize();
+        }
 
     }
 }

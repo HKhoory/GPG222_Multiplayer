@@ -269,6 +269,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   button: {fileID: 800440431695759650}
+  isButtonPressed: 0
+  _client: {fileID: 0}
 --- !u!1 &7138887062969523057
 GameObject:
   m_ObjectHideFlags: 0
