@@ -72,6 +72,7 @@ namespace Leonardo.Scripts.ClientRelated
             //Hamad: Adding in HeartbeatReceived event
 
             _packetHandler.OnHeartbeat += _networkConnection.CheckHeartbeat;
+            //_packetHandler.OnRestart += SendRestartPacket;
 
             //Dyson: Adding LobbyEvent
             _packetHandler.OnJoiningLobby += _packetHandler.ProcessPacket;
