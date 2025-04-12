@@ -53,7 +53,7 @@ namespace Leonardo.Scripts.Networking
         
         public void Update()
         {
-            heartbeatInterval -= 0.01f; //deducting the interval
+            heartbeatInterval -= 0.01f; //deducting the interval (time.deltatime dude)
 
             if (_socket != null && _socket.Connected && _socket.Available > 0)
             {

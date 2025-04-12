@@ -23,7 +23,8 @@ namespace Hamad.Scripts
             PingResponse,
             PushEvent,
             Heartbeat,
-            JoinLobby
+            JoinLobby,
+            Pause
         }
 
         public PacketType packetType;
