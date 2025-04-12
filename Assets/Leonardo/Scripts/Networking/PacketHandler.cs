@@ -21,7 +21,8 @@ namespace Leonardo.Scripts.Networking
         public event Action<int, Vector3, string> OnPushEventReceived;
 
         //Hamad: adding event for HeartBeatReceived
-        public event Action OnHeartbeatReceived;
+        public event Action OnHeartbeat;
+        public event Action<byte> OnHeartbeatReceived;
 
         private PlayerData _localPlayerData;
 
@@ -72,7 +73,7 @@ namespace Leonardo.Scripts.Networking
                     case Packet.PacketType.Heartbeat:
                         try
                         {
-                            OnHeartbeatReceived();
+                            ProcessHeartbeatPacket(data);
                         }
                         catch (Exception e)
                         {
@@ -117,9 +118,15 @@ namespace Leonardo.Scripts.Networking
         }
 
         //Hamad: adding the heartbeat action
-        private void ProcessHeartbeatPacket()
+        private void ProcessHeartbeatPacket(byte[] data)
         {
-            OnHeartbeatReceived?.Invoke();
+
+            byte heartbeat = data[0];
+            if (data != null) {
+                HeartbeatPacket heartbeatPacket = new HeartbeatPacket().Deserialize(data);
+                OnHeartbeatReceived?.Invoke(heartbeat);
+                OnHeartbeat?.Invoke();
+            }
         }
 
         private void ProcessPushEventPacket(byte[] data)
