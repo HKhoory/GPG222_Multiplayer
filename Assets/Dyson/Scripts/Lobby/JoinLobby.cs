@@ -2,9 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using Dyson_GPG222_Server;
 using Hamad.Scripts;
 using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Networking;
+using Leonardo.Scripts.Player;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
@@ -25,6 +27,14 @@ namespace Dyson.GPG222.Lobby
         [SerializeField] private NetworkClient _networkClient;
         private PlayerData _playerData;
         public ButtonColorChange _lobbyButton;
+        public Server _server;
+        public PlayerManager _playerManager;
+
+        private void Awake()
+        {
+            _server = FindObjectOfType<Server>();
+        }
+
         private void Start()
         {
            // clientPlayer = new ClientState();
@@ -35,7 +45,6 @@ namespace Dyson.GPG222.Lobby
             }
             
             _lobbyPacket = new LobbyPacket(_playerData);
-
         }
 
         public void JoinLobbyButton()
@@ -53,7 +62,7 @@ namespace Dyson.GPG222.Lobby
                 Debug.Log(clientPlayer);
                 Debug.Log(clientPlayer.ClientId);
                 Debug.Log("Player added to lobby");
-                //Invoke("StartGame", 2);   
+               // Invoke("StartGame", 2);
             }
         }
 

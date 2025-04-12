@@ -12,6 +12,7 @@ using Leonardo.Scripts.Controller;
 using Leonardo.Scripts.Packets;
 using Leonardo.Scripts.Player;
 using Hamad.Scripts.Restart;
+using UnityEngine.SceneManagement;
 
 namespace Leonardo.Scripts.Networking
 {
@@ -43,7 +44,6 @@ namespace Leonardo.Scripts.Networking
                 Debug.LogWarning("PacketHandler.cs: Received null or empty data packet");
                 return;
             }
-
             try
             {
                 Packet basePacket = new Packet();
@@ -155,7 +155,7 @@ namespace Leonardo.Scripts.Networking
 
         private void ProcessJoiningLobby(byte[] data)
         {
-         //   byte lobby = data[0];
+            byte lobby = data[0];
 
             if (data != null)
             {
@@ -268,7 +268,7 @@ namespace Leonardo.Scripts.Networking
             LobbyPacket lobbyPacket = new LobbyPacket(_localPlayerData);
             return lobbyPacket.Serialize();
         }
-
+        
         public byte[] CreateRestartPacket(bool reset)
         {
             RestartPacket restartPacket = new RestartPacket(_localPlayerData, reset);

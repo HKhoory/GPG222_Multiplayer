@@ -34,6 +34,7 @@ namespace Dyson_GPG222_Server
         public NetworkConnection networkConnection;
         public Lobby lobby;
         public JoinLobby _joinLobby;
+        public bool isServerFull;
 
         private void Awake()
         {
@@ -66,7 +67,7 @@ namespace Dyson_GPG222_Server
         // Leo: turned code at start into a method.
        
        // Function that starts the server and wait for clients
-        private static void StartServer(int maxPlayers, int port)
+        private void StartServer(int maxPlayers, int port)
         {
             MaxPlayers = maxPlayers;
             Port = port;
@@ -77,7 +78,7 @@ namespace Dyson_GPG222_Server
             tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
         }
 
-        private static void TCPConnectCallback(IAsyncResult result)
+        private void TCPConnectCallback(IAsyncResult result)
         {
             TcpClient client = tcpListener.EndAcceptTcpClient(result);
             tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
@@ -122,7 +123,7 @@ namespace Dyson_GPG222_Server
                     return;
                 }
             }
-
+            isServerFull = true;
             Debug.LogWarning($"Server.cs: Server full. Current clients: {clients.Count}");
             client.Close();
         }
@@ -271,11 +272,11 @@ namespace Dyson_GPG222_Server
                         newPlayer.ClientId = clientId;
                         lobby.AddPlayerToLobby(newPlayer);
                         connectedPlayers[clientId] = lobbyPacket._playerData; */
-                       if (connectedPlayers.Count >= MaxPlayers)
+                      /* if (connectedPlayers.Count >= MaxPlayers)
                        {
                             Debug.Log("All players are in the lobby, we can start the game!");
-                            SceneManager.LoadScene("Scenes/Client");
-                        }
+                            SceneManager.LoadScene(1);
+                        } */
                        // Debug.Log($"{newPlayer.ClientId} is joining the lobby!");
                         Broadcast(basePacket.packetType, data, clientId);
                         break;

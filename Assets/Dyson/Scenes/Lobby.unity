@@ -696,6 +696,8 @@ MonoBehaviour:
   _lobby: {fileID: 623379794}
   _networkClient: {fileID: 623379796}
   _lobbyButton: {fileID: 1468901830}
+  _server: {fileID: 0}
+  _playerManager: {fileID: 0}
 --- !u!4 &623379793
 Transform:
   m_ObjectHideFlags: 0
@@ -751,7 +753,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 623379791}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 34a5ff0dba99cc94da07a288ea5d577b, type: 3}
   m_Name: 
@@ -760,7 +762,7 @@ MonoBehaviour:
   ipAddress: 127.0.0.1
   connectionOnStart: 1
   port: 2121
-  playerPrefab: {fileID: 0}
+  playerPrefab: {fileID: 1066179444685803727, guid: 20e7d87ecdfb3b848921de998051075b, type: 3}
   updateInterval: 0.1
 --- !u!1001 &960206059
 PrefabInstance:
@@ -1207,7 +1209,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1848754177
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1225,6 +1227,7 @@ MonoBehaviour:
   startServerOnAwake: 1
   lobby: {fileID: 623379794}
   _joinLobby: {fileID: 623379792}
+  isServerFull: 0
 --- !u!4 &1848754178
 Transform:
   m_ObjectHideFlags: 0
