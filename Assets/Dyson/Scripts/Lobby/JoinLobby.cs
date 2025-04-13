@@ -1,75 +1,88 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Net.Sockets;
 using Dyson_GPG222_Server;
-using Hamad.Scripts;
 using Leonardo.Scripts.ClientRelated;
-using Leonardo.Scripts.Networking;
-using Leonardo.Scripts.Player;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
-using Button = UnityEngine.UI.Button;
+using UnityEngine.UI;
+using TMPro;
 
 namespace Dyson.GPG222.Lobby
 {
     public class JoinLobby : MonoBehaviour
     {
-        public GameObject joinLobbyCanvas;
-        public GameObject lobbyCanvas;
-        public List<ClientState> players;
-        public ClientState clientPlayer;
-        public Lobby _lobby;
-        public TcpClient client;
-        public LobbyPacket _lobbyPacket;
-        public NetworkConnection _networkConnection;
-        [SerializeField] private NetworkClient _networkClient;
-        private PlayerData _playerData;
-        public ButtonColorChange _lobbyButton;
-        public Server _server;
-        public PlayerManager _playerManager;
-
+        [Header("- UI References")]
+        public GameObject joinLobbyPanel;
+        public GameObject lobbyPanel;
+        public TMP_InputField ipAddressInput;
+        public Button hostButton;
+        public Button joinButton;
+        
+        [Header("- References")]
+        private NetworkClient _networkClient;
+        private Lobby _lobby;
+        private Server _server;
+        
         private void Awake()
         {
             _server = FindObjectOfType<Server>();
+            _networkClient = FindObjectOfType<NetworkClient>();
+            _lobby = FindObjectOfType<Lobby>();
+            
+            if (hostButton != null)
+                hostButton.onClick.AddListener(CreateServer);
+                
+            if (joinButton != null)
+                joinButton.onClick.AddListener(JoinLobbyButton);
+                
+            if (ipAddressInput != null)
+                ipAddressInput.text = "127.0.0.1";
         }
 
-        private void Start()
+        public void CreateServer()
         {
-           // clientPlayer = new ClientState();
-           _networkClient = FindObjectOfType<NetworkClient>();
-            if (_lobby == null)
+            PlayerPrefs.SetInt("IsHost", 1);
+            PlayerPrefs.SetString("ServerIP", "127.0.0.1");
+            PlayerPrefs.Save();
+    
+            if (_server != null)
             {
-                _lobby = FindObjectOfType<Lobby>();
+                _server.enabled = true;
+                _server.StartServer();
+                Debug.Log("Server started successfully!");
             }
-            
-            _lobbyPacket = new LobbyPacket(_playerData);
+            else
+            {
+                Debug.LogError("Server component not found!");
+            }
+    
+            if (_networkClient != null)
+            {
+                _networkClient.InitiateConnection();
+            }
+    
+            joinLobbyPanel.SetActive(false);
+            lobbyPanel.SetActive(true);
         }
 
         public void JoinLobbyButton()
         {
-            joinLobbyCanvas.SetActive(false);
-            lobbyCanvas.SetActive(true);
-            Debug.Log("Who joined my lobby?: " + clientPlayer.ClientId);
-
-            _playerData = new PlayerData("Testing", 1);
-            _lobbyPacket = new LobbyPacket(_playerData);
-            _networkClient.OnLobbyConnected();
-            if (_lobby != null)
+            PlayerPrefs.SetInt("IsHost", 0);
+    
+            if (ipAddressInput != null)
             {
-                _lobby.AddPlayerToLobby(clientPlayer);
-                Debug.Log(clientPlayer);
-                Debug.Log(clientPlayer.ClientId);
-                Debug.Log("Player added to lobby");
-               // Invoke("StartGame", 2);
+                string ip = ipAddressInput.text;
+                if (string.IsNullOrEmpty(ip))
+                    ip = "127.0.0.1";
+            
+                PlayerPrefs.SetString("ServerIP", ip);
+                PlayerPrefs.Save();
             }
-        }
-
-        public void StartGame()
-        {
-            Debug.Log("Transitioning to gameplay");
-            SceneManager.LoadScene("Scenes/Client");
+    
+            if (_networkClient != null)
+            {
+                _networkClient.InitiateConnection();
+            }
+    
+            joinLobbyPanel.SetActive(false);
+            lobbyPanel.SetActive(true);
         }
     }
 }

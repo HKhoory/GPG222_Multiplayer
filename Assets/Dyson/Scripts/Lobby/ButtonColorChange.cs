@@ -14,23 +14,39 @@ public class ButtonColorChange : MonoBehaviour
     void Start()
     {
         readyButton.onClick.AddListener(SetPlayerReady);
-        playerClientState = FindObjectOfType<Lobby>().localPlayerClientState;
+        
+        Lobby lobby = FindObjectOfType<Lobby>();
+        if (lobby != null)
+        {
+            playerClientState = lobby.localPlayerState;
+        }
     }
 
     void SetPlayerReady()
     {
         Color readyColor = Color.green;
         readyButton.GetComponent<Image>().color = readyColor;
+        
         isPlayerReady = true;
-        playerClientState.isReady = true;
+        if (playerClientState != null)
+        {
+            playerClientState.isReady = true;
+        }
 
-        // Leo: tell the server player is ready
-        FindObjectOfType<NetworkClient>().SendMessagePacket("PLAYER_READY");
+        NetworkClient networkClient = FindObjectOfType<NetworkClient>();
+        if (networkClient != null)
+        {
+            networkClient.SendPlayerReadyState(true);
+        }
 
-        // Leo: check if all ready (host only).
         if (PlayerPrefs.GetInt("IsHost", 0) == 1)
         {
-            FindObjectOfType<Lobby>().CheckAllPlayersReady();
+            Lobby lobby = FindObjectOfType<Lobby>();
+            if (lobby != null)
+            {
+                lobby.CheckAllPlayersReady();
+            }
         }
+        
     }
 }

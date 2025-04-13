@@ -41,16 +41,25 @@ namespace Leonardo.Scripts.ClientRelated
             isHost = PlayerPrefs.GetInt("IsHost", 0) == 1;
             ipAddress = PlayerPrefs.GetString("ServerIP", "127.0.0.1");
     
-            if (isHost)
-            {
-                var serverComponent = FindObjectOfType<Server>();
-                serverComponent.enabled = true;
-                serverComponent.StartServer();
-            }
-    
-            ConnectToServer($"{playerNamePrefix}{Random.Range(1, 9999)}");
-    
             _pingMeter = FindObjectOfType<PingMeter>();
+        }
+        
+        public void InitiateConnection()
+        {
+            if (!IsConnected)
+            {
+                ConnectToServer($"{playerNamePrefix}{Random.Range(1, 9999)}");
+        
+                if (isHost)
+                {
+                    var serverComponent = FindObjectOfType<Server>();
+                    if (serverComponent != null)
+                    {
+                        serverComponent.enabled = true;
+                        serverComponent.StartServer();
+                    }
+                }
+            }
         }
         
         private void Update()

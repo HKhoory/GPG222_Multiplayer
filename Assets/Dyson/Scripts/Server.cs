@@ -22,7 +22,6 @@ namespace Dyson_GPG222_Server
         private int maxPlayers = 4;
 
         [SerializeField] private int port = 2121;
-        [SerializeField] private bool startServerOnAwake = true;
 
         private static Server instance;
         private static int MaxPlayers;
@@ -43,33 +42,14 @@ namespace Dyson_GPG222_Server
         }
         
 
-        public void Start()
-        {
-            if (startServerOnAwake)
-            {
-                StartServer(maxPlayers, port);
-                InitializeServerData();
-            }
-        }
-
-        // Leo: in case someone wants to start the server manually.
         public void StartServer()
         {
-            StartServer(maxPlayers, port);
-            InitializeServerData();
-        }
-
-        private static void InitializeServerData()
-        {
-            clients.Clear();
-            Debug.Log($"Server.cs: Initialized server data.");
-        }
-
-        // Leo: turned code at start into a method.
-       
-       // Function that starts the server and wait for clients
-        private void StartServer(int maxPlayers, int port)
-        {
+            if (tcpListener != null)
+            {
+                Debug.LogWarning("Server is already running!");
+                return;
+            }
+    
             MaxPlayers = maxPlayers;
             Port = port;
             Debug.Log($"Server started on {Port}");
@@ -77,6 +57,14 @@ namespace Dyson_GPG222_Server
             tcpListener = new TcpListener(IPAddress.Any, Port);
             tcpListener.Start();
             tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
+    
+            InitializeServerData();
+        }
+
+        private static void InitializeServerData()
+        {
+            clients.Clear();
+            Debug.Log($"Server.cs: Initialized server data.");
         }
 
         private void TCPConnectCallback(IAsyncResult result)
