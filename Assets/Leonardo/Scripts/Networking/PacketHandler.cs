@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Resources;
 using Dyson.GPG222.Lobby;
+using Dyson.GPG222.Lobby.Dyson.GPG222.Lobby;
 using UnityEngine;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;

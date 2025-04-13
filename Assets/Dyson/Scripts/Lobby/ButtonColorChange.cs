@@ -13,7 +13,6 @@ public class ButtonColorChange : MonoBehaviour
 
     public ClientState _client;
     
-    // Start is called before the first frame update
     void Start()
     {
         button.onClick.AddListener(ChangeColor);
@@ -22,9 +21,20 @@ public class ButtonColorChange : MonoBehaviour
 
     void ChangeColor()
     {
-        Color newColor = isButtonPressed ? Color.red : Color.green;
-        button.GetComponent<Image>().color = newColor;
-        isButtonPressed = true;
-        _client.isReady = true;
+        {
+            Color newColor = Color.green;
+            button.GetComponent<Image>().color = newColor;
+            isButtonPressed = true;
+            _client.isReady = true;
+    
+            // Leo: tell the server player is ready.
+            FindObjectOfType<NetworkClient>().SendMessagePacket("PLAYER_READY");
+    
+            // Check if all ready (host only).
+            if (PlayerPrefs.GetInt("IsHost", 0) == 1)
+            {
+                FindObjectOfType<Lobby>().CheckAllPlayersReady();
+            }
+        }
     }
 }

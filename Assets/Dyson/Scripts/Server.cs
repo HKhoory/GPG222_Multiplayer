@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Net;
 using System.Net.Sockets;
 using Dyson.GPG222.Lobby;
+using Dyson.GPG222.Lobby.Dyson.GPG222.Lobby;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
@@ -36,9 +37,10 @@ namespace Dyson_GPG222_Server
         public JoinLobby _joinLobby;
         public bool isServerFull;
 
-        private void Awake()
+        void Awake() 
         {
-            instance = this;
+            // Leo: this will be enabled only if a player is hosting.
+            enabled = false;
         }
         
 

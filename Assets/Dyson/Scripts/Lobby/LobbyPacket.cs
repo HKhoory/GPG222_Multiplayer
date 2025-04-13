@@ -1,55 +1,49 @@
-using System.Collections;
-using System.Collections.Generic;
 using Hamad.Scripts;
-using Leonardo.Scripts.ClientRelated;
-using Leonardo.Scripts.Networking;
-using UnityEngine;
 
 namespace Dyson.GPG222.Lobby
 {
-    public class LobbyPacket : Packet
+    namespace Dyson.GPG222.Lobby
     {
-        public NetworkConnection _networkConnection;
-        public PlayerData _playerData;
-        
-        public LobbyPacket() : base(PacketType.JoinLobby, null)
+        public class LobbyPacket : Packet
         {
-        }
-        
-        public LobbyPacket(PlayerData playerData) : base(PacketType.JoinLobby, playerData)
-        {
-        //    _networkConnection = connection;
-            _playerData = playerData;
-        }
+            public bool IsReady { get; private set; }
+            public string PlayerName { get; private set; }
 
-        public byte[] Serialize()
-        {
-            if (_playerData == null)
+            public LobbyPacket() : base(PacketType.JoinLobby, null)
             {
-                Debug.LogError("player data is null");
-                return null;
+                IsReady = false;
+                PlayerName = "";
             }
-            BeginSerialize();
-            _binaryWriter.Write(_playerData.name);
-            _binaryWriter.Write(_playerData.tag);
-            return EndSerialize();
-        }
 
-       /* public void SendLobbyPacket()
-        {
-            _playerData = new PlayerData("test", 123);
-            var joinLobbyPacket = new LobbyPacket(_networkConnection, _playerData);
-            byte[] data = joinLobbyPacket.Serialize();
-           _networkConnection.SendData(data);
-        } */
-        
-        public new LobbyPacket Deserialize(byte[] buffer)
-        {
-            base.Deserialize(buffer);
-            string name = _binaryReader.ReadString();
-            int tag = _binaryReader.ReadInt32();
-            Debug.Log($"LobbyPacket deserialized with type: {packetType}");
-            return this;
+            public LobbyPacket(PlayerData playerData) : base(PacketType.JoinLobby, playerData)
+            {
+                this.playerData = playerData;
+                PlayerName = playerData.name;
+                IsReady = false;
+            }
+
+            public LobbyPacket(PlayerData playerData, bool isReady) : base(PacketType.JoinLobby, playerData)
+            {
+                this.playerData = playerData;
+                PlayerName = playerData.name;
+                IsReady = isReady;
+            }
+
+            public byte[] Serialize()
+            {
+                BeginSerialize();
+                _binaryWriter.Write(IsReady);
+                _binaryWriter.Write(PlayerName);
+                return EndSerialize();
+            }
+
+            public new LobbyPacket Deserialize(byte[] buffer)
+            {
+                base.Deserialize(buffer);
+                IsReady = _binaryReader.ReadBoolean();
+                PlayerName = _binaryReader.ReadString();
+                return this;
+            }
         }
     }
 }

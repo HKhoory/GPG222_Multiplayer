@@ -1,5 +1,7 @@
 using System;
+using Dyson_GPG222_Server;
 using Dyson.GPG222.Lobby;
+using Dyson.GPG222.Lobby.Dyson.GPG222.Lobby;
 using UnityEngine;
 using Hamad.Scripts;
 using Leonardo.Scripts.Networking;
@@ -21,6 +23,7 @@ namespace Leonardo.Scripts.ClientRelated
         
         [Header("- Network Settings")]
         [SerializeField] private float updateInterval = 0.1f;
+        [SerializeField] private bool isHost;
         
         private NetworkConnection _networkConnection;
         private PacketHandler _packetHandler;
@@ -30,16 +33,24 @@ namespace Leonardo.Scripts.ClientRelated
         private LobbyPacket _lobbyPacket;
         private float _nextUpdateTime;
         
+        
         public PlayerData LocalPlayer { get; private set; }
         public bool IsConnected => _networkConnection?.IsConnected ?? false;
         
         private void Start()
         {
-            if (connectionOnStart)
+            isHost = PlayerPrefs.GetInt("IsHost", 0) == 1;
+            ipAddress = PlayerPrefs.GetString("ServerIP", "127.0.0.1");
+    
+            if (isHost)
             {
-                ConnectToServer($"{playerNamePrefix}{Random.Range(1, 9999)}");
+                var serverComponent = FindObjectOfType<Server>();
+                serverComponent.enabled = true;
+                serverComponent.StartServer();
             }
-            
+    
+            ConnectToServer($"{playerNamePrefix}{Random.Range(1, 9999)}");
+    
             _pingMeter = FindObjectOfType<PingMeter>();
         }
         

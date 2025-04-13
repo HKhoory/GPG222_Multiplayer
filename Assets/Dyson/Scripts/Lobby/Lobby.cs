@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using Leonardo.Scripts.ClientRelated;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Dyson.GPG222.Lobby
@@ -39,6 +40,32 @@ namespace Dyson.GPG222.Lobby
                 Debug.Log($"[Lobby] Player UI setup for {newPlayerState.ClientId}");
             }
         }
+        
+        // Leo: I added this function to check if all players are ready.
+        public void CheckAllPlayersReady()
+        {
+            bool allReady = true;
+            foreach (ClientState player in players)
+            {
+                if (!player.isReady)
+                {
+                    allReady = false;
+                    break;
+                }
+            }
+    
+            if (allReady && players.Count > 0)
+            {
+                StartGame();
+            }
+        }
+        
+        public void StartGame()
+        {
+            hasGameStarted = true;
+            SceneManager.LoadScene("Scenes/Client");
+        }
+        
         public void ReadyButton()
         {
             testPlayer.isReady = true;
