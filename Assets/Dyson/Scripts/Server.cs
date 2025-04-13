@@ -4,7 +4,6 @@ using UnityEngine;
 using System.Net;
 using System.Net.Sockets;
 using Dyson.GPG222.Lobby;
-using Dyson.GPG222.Lobby.Dyson.GPG222.Lobby;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;

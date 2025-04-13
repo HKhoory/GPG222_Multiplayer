@@ -20,6 +20,6 @@ public class PlayerInLobby : MonoBehaviour
 
     public void GoToGame()
     {
-        // SceneManager.LoadScene("Scenes/Client");
+        SceneManager.LoadScene("Scenes/Client");
     }
 }

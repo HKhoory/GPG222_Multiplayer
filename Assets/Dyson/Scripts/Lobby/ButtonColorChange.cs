@@ -7,34 +7,30 @@ using UnityEngine.UI;
 
 public class ButtonColorChange : MonoBehaviour
 {
-    public Button button;
-
-    public bool isButtonPressed = false;
-
-    public ClientState _client;
+    public Button readyButton;
+    public bool isPlayerReady = false; 
+    public ClientState playerClientState;
     
     void Start()
     {
-        button.onClick.AddListener(ChangeColor);
-        _client = FindObjectOfType<Lobby>().testPlayer;
+        readyButton.onClick.AddListener(SetPlayerReady);
+        playerClientState = FindObjectOfType<Lobby>().localPlayerClientState;
     }
 
-    void ChangeColor()
+    void SetPlayerReady()
     {
+        Color readyColor = Color.green;
+        readyButton.GetComponent<Image>().color = readyColor;
+        isPlayerReady = true;
+        playerClientState.isReady = true;
+
+        // Leo: tell the server player is ready
+        FindObjectOfType<NetworkClient>().SendMessagePacket("PLAYER_READY");
+
+        // Leo: check if all ready (host only).
+        if (PlayerPrefs.GetInt("IsHost", 0) == 1)
         {
-            Color newColor = Color.green;
-            button.GetComponent<Image>().color = newColor;
-            isButtonPressed = true;
-            _client.isReady = true;
-    
-            // Leo: tell the server player is ready.
-            FindObjectOfType<NetworkClient>().SendMessagePacket("PLAYER_READY");
-    
-            // Check if all ready (host only).
-            if (PlayerPrefs.GetInt("IsHost", 0) == 1)
-            {
-                FindObjectOfType<Lobby>().CheckAllPlayersReady();
-            }
+            FindObjectOfType<Lobby>().CheckAllPlayersReady();
         }
     }
 }

@@ -4,30 +4,30 @@ namespace Leonardo.Scripts.Packets
 {
     public class ReadyInLobbyPacket : Packet
     {
-        public bool IsReady { get; private set; }
+        public bool isPlayerReady { get; private set; }
 
         public ReadyInLobbyPacket() : base(PacketType.ReadyInLobby, null)
         {
-            IsReady = false;
+            isPlayerReady = false;
         }
 
         public ReadyInLobbyPacket(PlayerData playerData, bool isReady) : base(PacketType.ReadyInLobby, playerData)
         {
             this.playerData = playerData;
-            IsReady = isReady;
+            this.isPlayerReady = isReady;
         }
 
         public byte[] Serialize()
         {
             BeginSerialize();
-            _binaryWriter.Write(IsReady);
+            _binaryWriter.Write(isPlayerReady);
             return EndSerialize();
         }
 
         public new ReadyInLobbyPacket Deserialize(byte[] buffer)
         {
             base.Deserialize(buffer);
-            IsReady = _binaryReader.ReadBoolean();
+            isPlayerReady = _binaryReader.ReadBoolean();
             return this;
         }
     }

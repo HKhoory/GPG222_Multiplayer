@@ -1,7 +1,6 @@
 using System;
 using Dyson_GPG222_Server;
 using Dyson.GPG222.Lobby;
-using Dyson.GPG222.Lobby.Dyson.GPG222.Lobby;
 using UnityEngine;
 using Hamad.Scripts;
 using Leonardo.Scripts.Networking;
@@ -74,11 +73,11 @@ namespace Leonardo.Scripts.ClientRelated
             _packetHandler = new PacketHandler(LocalPlayer);
             _playerManager = new PlayerManager(playerPrefab, LocalPlayer);
             
-            // Set up event handlers.
             _networkConnection.OnDataReceived += _packetHandler.ProcessPacket;
             _packetHandler.OnPositionReceived += _playerManager.UpdateRemotePlayerPosition;
             _packetHandler.OnPingResponseReceived += OnPingResponse;
             _packetHandler.OnPushEventReceived += _playerManager.HandlePushEvent;
+            _packetHandler.OnMessageReceived += HandleLobbyMessages;
             
             //Hamad: Adding in HeartbeatReceived event
 
@@ -87,12 +86,39 @@ namespace Leonardo.Scripts.ClientRelated
 
             //Dyson: Adding LobbyEvent
             _packetHandler.OnJoiningLobby += _packetHandler.ProcessPacket;
+            
+            
             // Connect to server.
             if (_networkConnection.Connect())
             {
-                OnLobbyConnected();
-                SendMessagePacket("Connected, hi!");
-                _playerManager.SpawnLocalPlayer();
+                Debug.Log($"Connected to server at {ipAddress}:{port}");
+        
+                string currentSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        
+                if (currentSceneName.Contains("Lobby"))
+                {
+                    JoinLobby();
+                }
+                else
+                {
+                    _playerManager.SpawnLocalPlayer();
+                }
+            }
+            else
+            {
+                Debug.LogError($"Failed to connect to server at {ipAddress}:{port}");
+            }
+        }
+        
+        private void HandleLobbyMessages(string playerName, string message)
+        {
+            if (message == "START_GAME")
+            {
+                Lobby lobby = FindObjectOfType<Lobby>();
+                if (lobby != null)
+                {
+                    lobby.OnStartGameMessageReceived();
+                }
             }
         }
         
@@ -179,6 +205,27 @@ namespace Leonardo.Scripts.ClientRelated
             return _networkConnection;
         }
 
+        public void SendPlayerReadyState(bool isReady)
+        {
+            if (!IsConnected) return;
+            byte[] data = _packetHandler.CreateReadyInLobbyPacket(isReady);
+            _networkConnection.SendData(data);
+            Debug.Log($"NetworkClient.cs: Player ready state sent: {isReady}");
+        }
+        
+        public void JoinLobby()
+        {
+            if (!IsConnected) return;
+
+            byte[] data = _packetHandler.CreateLobbyPacket();
+            _networkConnection.SendData(data);
+            Debug.Log("NetworkClient: Sent lobby join request");
+        }
+        
+        public PacketHandler GetPacketHandler()
+        {
+            return _packetHandler;
+        }
 
         private void OnDestroy()
         {

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Resources;
 using Dyson.GPG222.Lobby;
-using Dyson.GPG222.Lobby.Dyson.GPG222.Lobby;
 using UnityEngine;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
@@ -23,6 +22,7 @@ namespace Leonardo.Scripts.Networking
         public event Action<PlayerPositionData> OnPositionReceived;
         public event Action OnPingResponseReceived;
         public event Action<int, Vector3, string> OnPushEventReceived;
+        public event Action<PlayerData, bool> OnPlayerReadyStateChanged;
 
         //Hamad: adding event for HeartBeatReceived and Restart
         public event Action OnHeartbeat;
@@ -106,6 +106,17 @@ namespace Leonardo.Scripts.Networking
                             Debug.LogError("No lobby found");
                         }
                         break;
+                    case Packet.PacketType.ReadyInLobby:
+                        try
+                        {
+                            ProcessReadyInLobbyPacket(data);
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError($"Error processing ready state packet: {e.Message}");
+                        }
+                        break;
+
                     default:
                         Debug.LogWarning($"PacketHandler.cs: Unknown packet type received: {basePacket.packetType}");
                         break;
@@ -275,6 +286,19 @@ namespace Leonardo.Scripts.Networking
             RestartPacket restartPacket = new RestartPacket(_localPlayerData, reset);
             return restartPacket.Serialize();
 
+        }
+        
+        private void ProcessReadyInLobbyPacket(byte[] data)
+        {
+            ReadyInLobbyPacket readyPacket = new ReadyInLobbyPacket().Deserialize(data);
+            OnPlayerReadyStateChanged?.Invoke(readyPacket.playerData, readyPacket.isPlayerReady);
+            Debug.Log($"Player {readyPacket.playerData.name} ready state: {readyPacket.isPlayerReady}");
+        }
+
+        public byte[] CreateReadyInLobbyPacket(bool isReady)
+        {
+            ReadyInLobbyPacket readyPacket = new ReadyInLobbyPacket(_localPlayerData, isReady);
+            return readyPacket.Serialize();
         }
 
     }
