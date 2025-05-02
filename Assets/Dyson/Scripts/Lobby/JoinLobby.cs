@@ -10,77 +10,71 @@ namespace Dyson.GPG222.Lobby
     {
         [Header("- UI References")]
         public GameObject joinLobbyPanel;
+
         public GameObject lobbyPanel;
         public TMP_InputField ipAddressInput;
         public Button hostButton;
         public Button joinButton;
-        
+
         [Header("- References")]
         private NetworkClient _networkClient;
-        private Lobby _lobby;
+
+        private Scripts.Lobby.Lobby _lobby;
         private Server _server;
-        
-        private void Awake()
-        {
+
+        private void Awake() {
             _server = FindObjectOfType<Server>();
             _networkClient = FindObjectOfType<NetworkClient>();
-            _lobby = FindObjectOfType<Lobby>();
-            
+            _lobby = FindObjectOfType<Scripts.Lobby.Lobby>();
+
             if (hostButton != null)
                 hostButton.onClick.AddListener(CreateServer);
-                
+
             if (joinButton != null)
                 joinButton.onClick.AddListener(JoinLobbyButton);
-                
+
             if (ipAddressInput != null)
                 ipAddressInput.text = "127.0.0.1";
         }
 
-        public void CreateServer()
-        {
+        public void CreateServer() {
             PlayerPrefs.SetInt("IsHost", 1);
             PlayerPrefs.SetString("ServerIP", "127.0.0.1");
             PlayerPrefs.Save();
-    
-            if (_server != null)
-            {
+
+            if (_server != null) {
                 _server.enabled = true;
                 _server.StartServer();
                 Debug.Log("Server started successfully!");
             }
-            else
-            {
+            else {
                 Debug.LogError("Server component not found!");
             }
-    
-            if (_networkClient != null)
-            {
+
+            if (_networkClient != null) {
                 _networkClient.InitiateConnection();
             }
-    
+
             joinLobbyPanel.SetActive(false);
             lobbyPanel.SetActive(true);
         }
 
-        public void JoinLobbyButton()
-        {
+        public void JoinLobbyButton() {
             PlayerPrefs.SetInt("IsHost", 0);
-    
-            if (ipAddressInput != null)
-            {
+
+            if (ipAddressInput != null) {
                 string ip = ipAddressInput.text;
                 if (string.IsNullOrEmpty(ip))
                     ip = "127.0.0.1";
-            
+
                 PlayerPrefs.SetString("ServerIP", ip);
                 PlayerPrefs.Save();
             }
-    
-            if (_networkClient != null)
-            {
+
+            if (_networkClient != null) {
                 _networkClient.InitiateConnection();
             }
-    
+
             joinLobbyPanel.SetActive(false);
             lobbyPanel.SetActive(true);
         }

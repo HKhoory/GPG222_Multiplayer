@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using Dyson_GPG222_Server;
 using Dyson.GPG222.Lobby;
+using Dyson.Scripts.Lobby;
 using UnityEngine;
 using Hamad.Scripts;
 using Leonardo.Scripts.Networking;
