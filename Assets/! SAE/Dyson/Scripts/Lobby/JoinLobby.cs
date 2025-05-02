@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using __SAE.Leonardo.Scripts.ClientRelated;
 using Dyson_GPG222_Server;
 using TMPro;
@@ -69,52 +71,50 @@ namespace __SAE.Dyson.Scripts.Lobby
             UpdateStatus("Starting server...");
 
             string playerName = GetPlayerName();
-
-
+    
             isHost = true;
             serverIp = "127.0.0.1";
 
-            // Instead of PlayerPrefs, we'll pass these values directly to NetworkClient.
-            LogInfo("Player set as host, server IP: 127.0.0.1");
-
-            // Start the server.
             if (_server != null) {
                 _server.enabled = true;
                 _server.StartServer();
                 LogInfo("Server started successfully");
+        
+                StartCoroutine(ConnectAfterServerStarted(playerName));
             }
             else {
                 LogError("Server component not found!");
                 UpdateStatus("Error: Server component not found!");
-                return;
             }
+        }
 
-            // Connect to the server as a client.
+        private IEnumerator ConnectAfterServerStarted(string playerName) {
+            // Wait a short time for the server to initialize.
+            yield return new WaitForSeconds(0.5f);
+    
             if (_networkClient != null) {
+                _networkClient.SetPlayerName(playerName);
                 _networkClient.SetHostStatus(isHost, serverIp);
                 _networkClient.InitiateConnection();
                 LogInfo("Initiated client connection");
+        
+                // Switch panels.
+                connectionPanel.SetActive(false);
+                lobbyPanel.SetActive(true);
+                LogInfo("Switched to lobby panel");
             }
             else {
                 LogError("NetworkClient component not found!");
                 UpdateStatus("Error: NetworkClient component not found!");
-                return;
             }
-
-            _networkClient.SetPlayerName(playerName);
-
-            // Switch panels.
-            connectionPanel.SetActive(false);
-            lobbyPanel.SetActive(true);
-            LogInfo("Switched to lobby panel");
         }
 
         public void JoinLobbyButton() {
             UpdateStatus("Connecting to server...");
 
             string playerName = GetPlayerName();
-
-
+            Debug.Log($"[NAME DEBUG] JoinLobbyButton: Player name from input: {playerName}");
+    
             isHost = false;
 
             if (ipAddressInput != null) {
@@ -126,6 +126,9 @@ namespace __SAE.Dyson.Scripts.Lobby
             LogInfo($"Player set as client, server IP: {serverIp}");
 
             if (_networkClient != null) {
+                _networkClient.SetPlayerName(playerName);
+                Debug.Log($"[NAME DEBUG] JoinLobbyButton: Sent name to NetworkClient: {playerName}");
+        
                 _networkClient.SetHostStatus(isHost, serverIp);
                 _networkClient.InitiateConnection();
                 LogInfo("Initiated client connection");
@@ -136,13 +139,10 @@ namespace __SAE.Dyson.Scripts.Lobby
                 return;
             }
 
-            _networkClient.SetPlayerName(playerName);
-
             connectionPanel.SetActive(false);
             lobbyPanel.SetActive(true);
             LogInfo("Switched to lobby panel");
         }
-
         private void UpdateStatus(string message) {
             if (statusText != null) {
                 statusText.text = message;

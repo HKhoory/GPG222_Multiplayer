@@ -453,13 +453,9 @@ namespace Leonardo.Scripts.Networking
             ValidateLocalPlayerData();
 
             try {
+                Debug.Log($"[NAME DEBUG] PacketHandler.CreateLobbyPacket: Creating packet with player name: {_localPlayerData.name}");
                 LobbyPacket lobbyPacket = new LobbyPacket(_localPlayerData);
                 byte[] data = lobbyPacket.Serialize();
-
-                if (_verboseLogging) {
-                    LogInfo("Created lobby packet");
-                }
-
                 return data;
             }
             catch (Exception e) {

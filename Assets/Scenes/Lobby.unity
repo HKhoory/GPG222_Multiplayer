@@ -964,7 +964,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerNameInput: {fileID: 305226023}
-  defaultNamePrefix: Oh I didn't input my name so i must be dumb
+  defaultNamePrefix: MEGAFART
   connectionPanel: {fileID: 1836797725}
   lobbyPanel: {fileID: 1809315030}
   ipAddressInput: {fileID: 1660126847}
@@ -1366,10 +1366,6 @@ MonoBehaviour:
   playerCardPrefab: {fileID: 9149958383428980565, guid: 8da4c68a1b2774348a4eecea57e1c14e, type: 3}
   statusText: {fileID: 901370011}
   timeoutText: {fileID: 173283421}
-  localPlayerBackgroundColor: {r: 0.2, g: 0.6, b: 0.2, a: 1}
-  hostPlayerBackgroundColor: {r: 0.6, g: 0.4, b: 0.2, a: 1}
-  regularPlayerBackgroundColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
-  backgroundPanel: {fileID: 0}
   verboseLogging: 0
 --- !u!1 &652647978
 GameObject:

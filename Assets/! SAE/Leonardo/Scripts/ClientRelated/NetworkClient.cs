@@ -145,7 +145,12 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         /// <param name="name">The player's name.</param>
         public void SetPlayerName(string name) {
             _playerName = name;
-            LogInfo($"Player name set to: {name}");
+            Debug.Log($"[NAME DEBUG] NetworkClient.SetPlayerName: Player name set to: {name}");
+
+            if (LocalPlayer != null) {
+                Debug.Log($"[NAME DEBUG] NetworkClient.SetPlayerName: Updating existing LocalPlayer from name {LocalPlayer.name} to {name}");
+                LocalPlayer = new PlayerData(name, LocalPlayer.tag);
+            }
         }
 
 
@@ -419,9 +424,14 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         /// </summary>
         /// <param name="username">The username to use.</param>
         private void ConnectToServer(string username) {
+            Debug.Log($"[NAME DEBUG] ConnectToServer: Using username: {username}, _playerName: {_playerName}");
+
             // Create local player data if not already created.
             if (LocalPlayer == null) {
                 LocalPlayer = new PlayerData(username, Random.Range(1000, 9999));
+                Debug.Log($"[NAME DEBUG] ConnectToServer: Created new LocalPlayer with name: {LocalPlayer.name} and tag: {LocalPlayer.tag}");
+            } else {
+                Debug.Log($"[NAME DEBUG] ConnectToServer: Using existing LocalPlayer with name: {LocalPlayer.name} and tag: {LocalPlayer.tag}");
             }
 
             // Clean up existing connection if any.
@@ -463,6 +473,13 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         /// </summary>
         private void HandleConnected() {
             _connectionState = ConnectionState.Connected;
+            
+            if (!string.IsNullOrEmpty(_playerName) && LocalPlayer != null)
+            {
+                LocalPlayer = new PlayerData(_playerName, LocalPlayer.tag);
+                LogInfo($"Updated local player name to {_playerName}");
+            }
+            
             _reconnectAttempts = 0;
 
             LogInfo($"Connected to server at {ipAddress}:{port}");
@@ -475,7 +492,15 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
 
             string currentSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
 
+            Debug.Log($"[NAME DEBUG] HandleConnected: LocalPlayer name: {LocalPlayer.name}, _playerName: {_playerName}");
+    
+            if (!string.IsNullOrEmpty(_playerName) && LocalPlayer != null && _playerName != LocalPlayer.name) {
+                Debug.Log($"[NAME DEBUG] HandleConnected: LocalPlayer name doesn't match _playerName, updating from {LocalPlayer.name} to {_playerName}");
+                LocalPlayer = new PlayerData(_playerName, LocalPlayer.tag);
+            }
+    
             if (currentSceneName.Contains("Lobby")) {
+                Debug.Log($"[NAME DEBUG] HandleConnected: About to join lobby with name: {LocalPlayer.name}");
                 JoinLobby();
             }
             else {
