@@ -1,6 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
-using _Studens.Leonardo.Scripts.ClientRelated;
+using Leonardo.Scripts.ClientRelated;
 using Dyson.GPG222.Lobby;
 using Leonardo.Scripts.ClientRelated;
 using UnityEngine;

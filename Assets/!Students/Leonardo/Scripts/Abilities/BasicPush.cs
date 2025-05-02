@@ -1,4 +1,4 @@
-using _Studens.Leonardo.Scripts.ClientRelated;
+using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Controller;
 using UnityEngine;

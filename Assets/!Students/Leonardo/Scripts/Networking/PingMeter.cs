@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Diagnostics;
-using _Studens.Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.ClientRelated;
 using TMPro;
 using UnityEngine;
