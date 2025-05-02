@@ -43,7 +43,7 @@ namespace Dyson.Scripts.Lobby
         public bool isPlayerReady = false;
     
         private NetworkClient _networkClient;
-        private Lobby _lobby;
+        private __SAE.Dyson.Scripts.Lobby.Lobby _lobby;
         private bool _buttonClicked = false;
         private bool _hasSetupCompleted = false;
         private Color _targetColor;
@@ -131,7 +131,7 @@ namespace Dyson.Scripts.Lobby
                 }
             }
             
-            _lobby = FindObjectOfType<Lobby>();
+            _lobby = FindObjectOfType<__SAE.Dyson.Scripts.Lobby.Lobby>();
             if (_lobby != null)
             {
                 playerClientState = _lobby.LocalPlayerState;

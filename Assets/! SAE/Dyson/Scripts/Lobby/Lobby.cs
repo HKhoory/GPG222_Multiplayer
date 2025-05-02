@@ -1,18 +1,17 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using __SAE.Dyson.Scripts.Lobby;
+using System.Linq;
 using __SAE.Leonardo.Scripts.ClientRelated;
 using __SAE.Leonardo.Scripts.Packets;
+using Dyson.Scripts.Lobby;
 using Hamad.Scripts;
-using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Networking;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
-namespace Dyson.Scripts.Lobby
+namespace __SAE.Dyson.Scripts.Lobby
 {
     /// <summary>
     /// Manages the multiplayer lobby, including player connections, ready states,
@@ -24,24 +23,23 @@ namespace Dyson.Scripts.Lobby
 
         [Header("- Lobby Configuration")]
         [SerializeField] private string gameSceneName = "Gameplay";
+
         [SerializeField] private int minPlayersToStart = 2;
         [SerializeField] private float initialJoinDelay = 0.5f;
         [SerializeField] private float lobbyTimeout = 300f;
 
         [Header("- UI References")]
         [SerializeField] private Transform playersContainer;
+
         [SerializeField] private GameObject playerCardPrefab;
         [SerializeField] private TextMeshProUGUI statusText;
         [SerializeField] private TextMeshProUGUI timeoutText;
 
-        [Header("- Debug Settings")]
-        [SerializeField] private bool verboseLogging = false;
-
         #endregion
 
         #region Private Fields
-        
-        private ClientState localPlayerState; 
+
+        private ClientState localPlayerState;
         private NetworkClient networkClient;
         private Dictionary<int, ClientState> allPlayerStates = new Dictionary<int, ClientState>();
         private Dictionary<int, GameObject> playerCards = new Dictionary<int, GameObject>();
@@ -52,6 +50,9 @@ namespace Dyson.Scripts.Lobby
         private float reconnectInterval = 5f;
         private float lobbyTimeoutTimer;
 
+        /// <summary>
+        /// Represents the possible states of the lobby.
+        /// </summary>
         public enum LobbyState
         {
             Initializing,
@@ -72,22 +73,51 @@ namespace Dyson.Scripts.Lobby
 
         #region Public Properties
 
+        /// <summary>
+        /// Gets the state object for the local player.
+        /// </summary>
         public ClientState LocalPlayerState => localPlayerState;
+
+        /// <summary>
+        /// Gets the current operational state of the lobby.
+        /// </summary>
         public LobbyState CurrentState => currentState;
+
+        /// <summary>
+        /// Gets the last recorded error message, if any.
+        /// </summary>
         public string ErrorMessage => errorMessage;
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is the host.
+        /// </summary>
         public bool IsHost => isHost;
+
+        /// <summary>
+        /// Gets the current number of players in the lobby.
+        /// </summary>
         public int PlayerCount => allPlayerStates.Count;
+
+        /// <summary>
+        /// Gets the minimum number of players required to start the game.
+        /// </summary>
         public int MinPlayersToStart => minPlayersToStart;
 
         #endregion
 
         #region Unity Lifecycle Methods
 
+        /// <summary>
+        /// Called when the script instance is being loaded. Initializes fields.
+        /// </summary>
         private void Awake() {
             InitializeFields();
-            LogInfo("Lobby initialized");
         }
 
+        /// <summary>
+        /// Called on the frame when a script is enabled just before any of the Update methods are called the first time.
+        /// Sets up initial state, event handlers, and timers.
+        /// </summary>
         private void Start() {
             SetLobbyState(LobbyState.Connecting);
             UpdateStatusText();
@@ -97,11 +127,13 @@ namespace Dyson.Scripts.Lobby
             lobbyTimeoutTimer = lobbyTimeout;
             lobbyTimeoutCoroutine = StartCoroutine(LobbyTimeoutCoroutine());
 
-            Invoke("DelayedJoinLobby", initialJoinDelay);
+            Invoke(nameof(DelayedJoinLobby), initialJoinDelay);
         }
 
+        /// <summary>
+        /// Called every frame. Updates timers and handles disconnection checks.
+        /// </summary>
         private void Update() {
-            
             if (timeoutText != null && currentState == LobbyState.Waiting) {
                 timeoutText.text = $"Timeout: {Mathf.CeilToInt(lobbyTimeoutTimer)}s";
                 lobbyTimeoutTimer -= Time.deltaTime;
@@ -112,6 +144,9 @@ namespace Dyson.Scripts.Lobby
             }
         }
 
+        /// <summary>
+        /// Called when the MonoBehaviour will be destroyed. Unregisters event handlers and stops coroutines.
+        /// </summary>
         private void OnDestroy() {
             UnregisterEventHandlers();
 
@@ -126,8 +161,6 @@ namespace Dyson.Scripts.Lobby
             if (reconnectCoroutine != null) {
                 StopCoroutine(reconnectCoroutine);
             }
-
-            LogInfo("Lobby destroyed");
         }
 
         #endregion
@@ -135,56 +168,61 @@ namespace Dyson.Scripts.Lobby
         #region Initialization Methods
 
         /// <summary>
-        /// Initializes fields and references.
+        /// Initializes fields and references needed by the Lobby script.
         /// </summary>
         private void InitializeFields() {
-            
-            localPlayerState = new ClientState(); 
+            localPlayerState = new ClientState();
 
-            // Find or create the NetworkClient.
             networkClient = FindObjectOfType<NetworkClient>();
             if (networkClient == null) {
-                LogError("NetworkClient not found! Creating one...");
-                GameObject networkObj = new GameObject("NetworkClient");
+                GameObject networkObj = new GameObject("NetworkClient_FromLobby");
                 networkClient = networkObj.AddComponent<NetworkClient>();
             }
         }
 
-        private void RegisterEventHandlers()
-        {
-            if (networkClient != null)
-            {
+        /// <summary>
+        /// Subscribes lobby methods to relevant network events from the PacketHandler.
+        /// </summary>
+        private void RegisterEventHandlers() {
+            if (networkClient != null) {
                 StartCoroutine(WaitForPacketHandlerAndRegister());
-            }
-            else
-            {
-                LogError("NetworkClient is still null during event registration!");
             }
         }
 
-        private IEnumerator WaitForPacketHandlerAndRegister()
-        {
-            while (networkClient.GetPacketHandler() == null)
-            {
-                LogInfo("Waiting for NetworkClient's PacketHandler to be ready...");
+        /// <summary>
+        /// Coroutine that waits until the PacketHandler is available and then registers event handlers.
+        /// </summary>
+        /// <returns>An IEnumerator for the coroutine.</returns>
+        private IEnumerator WaitForPacketHandlerAndRegister() {
+            while (networkClient == null || networkClient.GetPacketHandler() == null) {
+                if (networkClient == null && Time.timeSinceLevelLoad > 1.0f) {
+                    yield break;
+                }
+
                 yield return null;
             }
 
-            LogInfo("PacketHandler is ready. Registering events.");
             PacketHandler packetHandler = networkClient.GetPacketHandler();
+
+            packetHandler.OnPlayerReadyStateChanged -= HandlePlayerReadyState;
+            packetHandler.OnMessageReceived -= HandleLobbyMessage;
+            packetHandler.OnLobbyStateReceived -= HandleLobbyState;
+
             packetHandler.OnPlayerReadyStateChanged += HandlePlayerReadyState;
             packetHandler.OnMessageReceived += HandleLobbyMessage;
             packetHandler.OnLobbyStateReceived += HandleLobbyState;
-            
-            LogInfo("Event handlers registered successfully");
         }
 
+        /// <summary>
+        /// Unsubscribes lobby methods from network events to prevent memory leaks.
+        /// </summary>
         private void UnregisterEventHandlers() {
             if (networkClient != null) {
                 PacketHandler packetHandler = networkClient.GetPacketHandler();
                 if (packetHandler != null) {
                     packetHandler.OnPlayerReadyStateChanged -= HandlePlayerReadyState;
                     packetHandler.OnMessageReceived -= HandleLobbyMessage;
+                    packetHandler.OnLobbyStateReceived -= HandleLobbyState;
                 }
             }
         }
@@ -194,33 +232,31 @@ namespace Dyson.Scripts.Lobby
         #region Lobby Connection Methods
 
         /// <summary>
-        /// Attempts to join the lobby after a delay to ensure network is ready.
+        /// Attempts to join the lobby after a delay to ensure the network connection is established.
+        /// Determines host status and sends the join request.
         /// </summary>
         private void DelayedJoinLobby() {
             if (networkClient == null || !networkClient.IsConnected) {
-                LogWarning("Network not ready, retrying in 1 second...");
-                
-                Invoke(nameof(DelayedJoinLobby), 1.0f); 
+                Invoke(nameof(DelayedJoinLobby), 1.0f);
                 return;
             }
 
             initializedLobby = true;
 
             if (networkClient?.LocalPlayer != null) {
-                localPlayerState.name = networkClient.LocalPlayer.name; 
-                localPlayerState.ClientId = networkClient.LocalPlayer.tag; 
-                
-                isHost = (localPlayerState.ClientId == 1);
+                localPlayerState.name = networkClient.LocalPlayer.name;
+                localPlayerState.ClientId = networkClient.LocalPlayer.tag;
+
                 if (networkClient.IsHost) {
                     isHost = true;
                     localPlayerState.ClientId = 1;
-                } else {
+                }
+                else {
                     isHost = false;
                 }
-                LogError($"[Lobby] Determined host status in DelayedJoinLobby: {isHost} (Based on NetworkClient/ID Check)"); 
-            } else {
-                LogError("Cannot assign local player details or determine host status in DelayedJoinLobby - NetworkClient or LocalPlayer is null.");
-                SetLobbyState(LobbyState.Error); 
+            }
+            else {
+                SetLobbyState(LobbyState.Error);
                 errorMessage = "Failed to initialize local player data.";
                 UpdateStatusText();
                 return;
@@ -228,33 +264,29 @@ namespace Dyson.Scripts.Lobby
 
 
             if (isHost) {
-                localPlayerState.ClientId = 1; 
-                LogInfo($"Host setting up player. Name: {localPlayerState.name} ID: {localPlayerState.ClientId}");
+                localPlayerState.ClientId = 1;
 
-                
-                if (!allPlayerStates.ContainsKey(localPlayerState.ClientId))
-                {
-                    AddPlayerToLobby(localPlayerState); 
-                } else {
-                    
+                if (!allPlayerStates.ContainsKey(localPlayerState.ClientId)) {
+                    AddPlayerToLobby(localPlayerState);
+                }
+                else {
                     allPlayerStates[localPlayerState.ClientId] = localPlayerState;
                     UpdatePlayerReadyUI(localPlayerState.ClientId);
                 }
+
                 SetLobbyState(LobbyState.Waiting);
                 UpdateStatusText("Hosting lobby - Waiting for players...");
             }
             else {
-                
                 SetLobbyState(LobbyState.Connecting);
                 UpdateStatusText("Joining lobby...");
             }
 
             networkClient.JoinLobby();
-            LogInfo("Sent lobby join request");
         }
 
         /// <summary>
-        /// Handles a network disconnection.
+        /// Handles the logic when a network disconnection is detected, potentially attempting reconnection.
         /// </summary>
         private void HandleDisconnect() {
             reconnectTimer -= Time.deltaTime;
@@ -263,9 +295,15 @@ namespace Dyson.Scripts.Lobby
 
             if (reconnectTimer <= 0f) {
                 reconnectTimer = reconnectInterval;
-                networkClient.InitiateConnection();
-
-                UpdateStatusText("Attempting to reconnect...");
+                if (networkClient != null) {
+                    networkClient.InitiateConnection();
+                    UpdateStatusText("Attempting to reconnect...");
+                }
+                else {
+                    UpdateStatusText("Cannot reconnect: NetworkClient is missing.");
+                    SetLobbyState(LobbyState.Error);
+                    errorMessage = "Network connection lost permanently.";
+                }
             }
         }
 
@@ -273,110 +311,107 @@ namespace Dyson.Scripts.Lobby
 
         #region Message Handling Methods
 
-        private void HandleLobbyState(List<LobbyStatePacket.LobbyPlayerInfo> players)
-        {
-            LogInfo($"Received lobby state with {players.Count} players");
+        /// <summary>
+        /// Processes the complete lobby state received from the server, updating local state and UI.
+        /// </summary>
+        /// <param name="players">A list of player information objects representing the current lobby state.</param>
+        private void HandleLobbyState(List<LobbyStatePacket.LobbyPlayerInfo> players) {
+            if (players == null) return;
 
-            HashSet<int> receivedPlayerIds = new HashSet<int>(); 
-            foreach (var playerInfo in players)
-            {
+            HashSet<int> receivedPlayerIds = new HashSet<int>();
+            foreach (var playerInfo in players) {
+                if (playerInfo == null) continue;
                 receivedPlayerIds.Add(playerInfo.ClientId);
 
-                bool isThisLocalPlayer = (networkClient?.LocalPlayer != null && networkClient.LocalPlayer.name == playerInfo.PlayerName);
+                string localPlayerName = networkClient?.LocalPlayer?.name;
+                bool isThisLocalPlayer = (localPlayerName != null && localPlayerName == playerInfo.PlayerName);
 
-
-                if (isThisLocalPlayer && localPlayerState != null)
-                {
+                if (isThisLocalPlayer && localPlayerState != null) {
                     bool localPlayerChanged = false;
-                    if (localPlayerState.ClientId != playerInfo.ClientId && playerInfo.ClientId != 0) { 
-                         localPlayerState.ClientId = playerInfo.ClientId;
-                         localPlayerChanged = true;
-                         LogInfo($"Assigned ClientId {playerInfo.ClientId} to local player.");
+                    if (localPlayerState.ClientId != playerInfo.ClientId && playerInfo.ClientId != 0) {
+                        localPlayerState.ClientId = playerInfo.ClientId;
+                        localPlayerChanged = true;
                     }
+
                     if (localPlayerState.isReady != playerInfo.IsReady) {
                         localPlayerState.isReady = playerInfo.IsReady;
-                         localPlayerChanged = true;
-                    }
-                     if (localPlayerState.name != playerInfo.PlayerName) {
-                        localPlayerState.name = playerInfo.PlayerName;
-                         localPlayerChanged = true;
+                        localPlayerChanged = true;
                     }
 
-                    LogInfo($"Processing update for localPlayerState instance. ID: {localPlayerState.ClientId}, Name: {localPlayerState.name}, Ready: {localPlayerState.isReady}");
+                    if (localPlayerState.name != playerInfo.PlayerName) {
+                        localPlayerState.name = playerInfo.PlayerName;
+                        localPlayerChanged = true;
+                    }
 
                     if (!allPlayerStates.ContainsKey(localPlayerState.ClientId)) {
-                         if (localPlayerState.ClientId != 0) {
-                            AddPlayerToLobby(localPlayerState); 
-                         } else {
-                            LogWarning("Tried to add local player state before receiving a valid ClientId.");
-                         }
-                    } else {
+                        if (localPlayerState.ClientId != 0) {
+                            AddPlayerToLobby(localPlayerState);
+                        }
+                    }
+                    else {
                         allPlayerStates[localPlayerState.ClientId] = localPlayerState;
-                         if (localPlayerChanged) {
-                            UpdatePlayerReadyUI(localPlayerState.ClientId); 
-                         }
+                        if (localPlayerChanged) {
+                            UpdatePlayerReadyUI(localPlayerState.ClientId);
+                        }
                     }
                 }
-                else if (!allPlayerStates.ContainsKey(playerInfo.ClientId))
-                {
+                else if (!allPlayerStates.ContainsKey(playerInfo.ClientId)) {
                     ClientState newState = new ClientState();
                     newState.ClientId = playerInfo.ClientId;
                     newState.isReady = playerInfo.IsReady;
                     newState.name = playerInfo.PlayerName;
                     AddPlayerToLobby(newState);
-                    LogInfo($"Added remote player {playerInfo.PlayerName} with ID {playerInfo.ClientId}");
                 }
-                else
-                {
+                else {
                     ClientState existingState = allPlayerStates[playerInfo.ClientId];
                     bool changed = false;
                     if (existingState.name != playerInfo.PlayerName) {
                         existingState.name = playerInfo.PlayerName;
                         changed = true;
                     }
+
                     if (existingState.isReady != playerInfo.IsReady) {
                         existingState.isReady = playerInfo.IsReady;
                         changed = true;
                     }
-                    if(changed) {
-                        UpdatePlayerReadyUI(playerInfo.ClientId); 
+
+                    if (changed) {
+                        UpdatePlayerReadyUI(playerInfo.ClientId);
                     }
                 }
             }
-            
+
             List<int> currentKnownIds = new List<int>(allPlayerStates.Keys);
-            foreach(int knownId in currentKnownIds) {
-                 if (localPlayerState != null && knownId == localPlayerState.ClientId) continue; 
+            foreach (int knownId in currentKnownIds) {
+                if (localPlayerState != null && knownId == localPlayerState.ClientId) continue;
 
                 if (!receivedPlayerIds.Contains(knownId)) {
-                     LogInfo($"Removing player {knownId} (stale entry) not present in latest LobbyState.");
-                     if (playerCards.TryGetValue(knownId, out GameObject card)) {
-                         Destroy(card);
-                         playerCards.Remove(knownId);
-                     }
-                     allPlayerStates.Remove(knownId);
+                    if (playerCards.TryGetValue(knownId, out GameObject card)) {
+                        Destroy(card);
+                        playerCards.Remove(knownId);
+                    }
+
+                    allPlayerStates.Remove(knownId);
                 }
             }
 
             UpdateStatusText($"In Lobby - {allPlayerStates.Count} players");
-        }        
+        }
+
         /// <summary>
-        /// Handles lobby messages from the server.
+        /// Handles generic lobby-related messages received from the network.
+        /// Dispatches actions based on message content (e.g., JOIN_LOBBY, START_GAME).
         /// </summary>
         /// <param name="playerName">The name of the player who sent the message.</param>
-        /// <param name="message">The message that was sent.</param>
+        /// <param name="message">The message content.</param>
         private void HandleLobbyMessage(string playerName, string message) {
-            LogInfo($"Received message from {playerName}: {message}");
-
             if (message == "JOIN_LOBBY") {
                 HandlePlayerJoin(playerName);
             }
             else if (message == "START_GAME") {
-                LogInfo("Received START_GAME message");
                 OnStartGameMessageReceived();
             }
             else if (message == "REQUEST_LOBBY_STATE" && isHost) {
-                LogInfo("Received request to broadcast lobby state from server");
                 BroadcastLobbyState();
             }
             else if (message.StartsWith("LOBBY_STATE:")) {
@@ -387,18 +422,16 @@ namespace Dyson.Scripts.Lobby
         }
 
         /// <summary>
-        /// Handles a player joining the lobby.
+        /// Handles the logic when a message indicates a new player has joined.
+        /// If this instance is the host, it adds the player and broadcasts the updated state.
         /// </summary>
         /// <param name="playerName">The name of the player who joined.</param>
         private void HandlePlayerJoin(string playerName) {
-            LogInfo($"Player {playerName} joined the lobby");
-
             if (isHost) {
-                if (playerName == networkClient.LocalPlayer.name) {
-                    LogInfo($"This is the host joining, not creating duplicate entry");
+                if (networkClient?.LocalPlayer != null && playerName == networkClient.LocalPlayer.name) {
                     return;
                 }
-                
+
                 bool foundExisting = false;
                 foreach (var state in allPlayerStates.Values) {
                     if (state.name == playerName) {
@@ -407,47 +440,38 @@ namespace Dyson.Scripts.Lobby
                     }
                 }
 
-                // Add new player if they don't exist.
                 if (!foundExisting) {
-                    // ClientState is not a Component, create an instance directly.
-                    ClientState newPlayerState = new ClientState(); 
-                    newPlayerState.ClientId = allPlayerStates.Count + 1; 
+                    ClientState newPlayerState = new ClientState();
+                    newPlayerState.ClientId = allPlayerStates.Count > 0 ? allPlayerStates.Keys.Max() + 1 : 2;
                     newPlayerState.name = playerName;
                     AddPlayerToLobby(newPlayerState);
-
-                    LogInfo($"Added new player {playerName} with ID {newPlayerState.ClientId}");
-
-                    // ! Broadcast updated lobby state to ALL clients.
                     BroadcastLobbyState();
                 }
             }
         }
 
         /// <summary>
-        /// Broadcasts the current lobby state to all clients.
+        /// Broadcasts the current lobby state (list of players and statuses) to all connected clients.
+        /// Only executed by the host.
         /// </summary>
         private void BroadcastLobbyState() {
             if (!isHost || networkClient == null || !networkClient.IsConnected) return;
 
             string stateMessage = "LOBBY_STATE:";
             foreach (var player in allPlayerStates) {
-                // Format: ClientID:isReady:playerName,
                 stateMessage += $"{player.Key}:{player.Value.isReady}:{player.Value.name},";
             }
 
-            LogInfo($"Broadcasting state: {stateMessage}");
             networkClient.SendMessagePacket(stateMessage);
         }
 
         /// <summary>
-        /// Parses the lobby state from a message.
+        /// Parses the lobby state information received within a generic message string.
+        /// Updates the local lobby state based on the parsed data. Used by clients.
         /// </summary>
-        /// <param name="message">The message containing the lobby state.</param>
+        /// <param name="message">The message string containing the lobby state data.</param>
         private void ParseLobbyState(string message) {
-            LogInfo($"Parsing lobby state: {message}");
-
             try {
-                // ! Format: "LOBBY_STATE:1:true:PlayerName,2:false:OtherPlayer,"
                 string[] parts = message.Substring(12).Split(',');
 
                 foreach (string part in parts) {
@@ -455,7 +479,6 @@ namespace Dyson.Scripts.Lobby
 
                     string[] playerData = part.Split(':');
                     if (playerData.Length < 3) {
-                        LogWarning($"Invalid player data format: {part}");
                         continue;
                     }
 
@@ -465,37 +488,32 @@ namespace Dyson.Scripts.Lobby
                         string playerName = playerData[2];
 
                         if (!allPlayerStates.ContainsKey(id)) {
-                            ClientState newState = new ClientState(); 
+                            ClientState newState = new ClientState();
                             newState.ClientId = id;
                             newState.isReady = ready;
                             newState.name = playerName;
 
-                            // Check if this is our local player.
-                            if (networkClient != null && networkClient.LocalPlayer != null &&
-                                networkClient.LocalPlayer.name == playerName) {
-                                LogInfo($"Found our local player with ID {id}");
+                            if (networkClient?.LocalPlayer != null && networkClient.LocalPlayer.name == playerName) {
                                 localPlayerState = newState;
                             }
 
                             AddPlayerToLobby(newState);
                         }
                         else {
-                            // Update existing player.
                             allPlayerStates[id].isReady = ready;
                             allPlayerStates[id].name = playerName;
                             UpdatePlayerReadyUI(id);
                         }
                     }
-                    catch (Exception e) {
-                        LogError($"Error parsing player data: {e.Message}");
+                    catch (Exception) {
+                        // Error parsing individual player data - ignore this entry
                     }
                 }
 
                 SetLobbyState(LobbyState.Waiting);
                 UpdateStatusText($"In Lobby - {allPlayerStates.Count} players");
             }
-            catch (Exception e) {
-                LogError($"Error parsing lobby state: {e.Message}");
+            catch (Exception) {
                 SetLobbyState(LobbyState.Error);
                 errorMessage = "Failed to parse lobby state";
                 UpdateStatusText("Error: Failed to parse lobby state");
@@ -503,22 +521,19 @@ namespace Dyson.Scripts.Lobby
         }
 
         /// <summary>
-        /// Handles a player's ready state change.
+        /// Handles updates to a player's ready status received from the network.
+        /// Updates the internal state and UI, and triggers checks if the host.
         /// </summary>
-        /// <param name="playerData">The player data.</param>
-        /// <param name="isReady">Whether the player is ready.</param>
+        /// <param name="playerData">The PlayerData object associated with the status change.</param>
+        /// <param name="isReady">The new ready status.</param>
         private void HandlePlayerReadyState(PlayerData playerData, bool isReady) {
-            LogInfo($"Player {playerData.name} ready state changed to {isReady}");
+            if (playerData == null) return;
 
-            // Find the player by name.
             foreach (var pair in allPlayerStates) {
                 ClientState state = pair.Value;
-
-                // Match by name since player tags are random.
                 if (state.name == playerData.name) {
                     state.isReady = isReady;
                     UpdatePlayerReadyUI(state.ClientId);
-                    LogInfo($"Updated player {playerData.name} ready state to {isReady}");
                     break;
                 }
             }
@@ -534,12 +549,13 @@ namespace Dyson.Scripts.Lobby
         #region Player Management Methods
 
         /// <summary>
-        /// Adds a player to the lobby.
+        /// Adds a player's state to the internal dictionary and creates the corresponding UI element.
         /// </summary>
-        /// <param name="playerState">The player state to add.</param>
+        /// <param name="playerState">The ClientState object representing the player to add.</param>
         public void AddPlayerToLobby(ClientState playerState) {
+            if (playerState == null || playerState.ClientId == 0) return;
+
             if (allPlayerStates.ContainsKey(playerState.ClientId)) {
-                LogWarning($"Player with ID {playerState.ClientId} already exists! Updating instead of adding new.");
                 allPlayerStates[playerState.ClientId] = playerState;
                 UpdatePlayerReadyUI(playerState.ClientId);
                 return;
@@ -554,50 +570,37 @@ namespace Dyson.Scripts.Lobby
                 if (playerInLobby != null) {
                     playerInLobby.Setup(playerState);
                 }
-                else {
-                    LogWarning($"PlayerInLobby component not found on player card!");
-                }
 
                 playerCards[playerState.ClientId] = playerCard;
             }
-            else {
-                LogWarning("Cannot create player card: playersContainer or playerCardPrefab is null");
-            }
 
-            // Update the status text.
             UpdateStatusText($"In Lobby - {allPlayerStates.Count} players");
-            Debug.Log("Added player to lobby");
         }
 
         /// <summary>
-        /// Updates the UI for a player's ready state.
+        /// Refreshes the UI element (player card) associated with a specific client ID.
         /// </summary>
-        /// <param name="clientId">The client ID.</param>
+        /// <param name="clientId">The client ID of the player whose UI needs updating.</param>
         private void UpdatePlayerReadyUI(int clientId) {
             if (playerCards.TryGetValue(clientId, out GameObject playerCard)) {
                 PlayerInLobby playerInLobby = playerCard.GetComponent<PlayerInLobby>();
                 if (playerInLobby != null) {
-                    playerInLobby.RefreshUI();
+                    if (allPlayerStates.TryGetValue(clientId, out ClientState state)) {
+                        playerInLobby.Setup(state);
+                        playerInLobby.RefreshUI();
+                    }
                 }
-                else {
-                    LogWarning($"PlayerInLobby component not found on player card for client {clientId}");
-                }
-            }
-            else {
-                LogWarning($"Player card not found for client {clientId}");
             }
         }
 
         /// <summary>
-        /// Checks if all players are ready to start the game.
+        /// Checks if the minimum number of players have joined and if all players are ready.
+        /// If conditions are met, initiates the game start sequence. Only executed by the host.
         /// </summary>
         public void CheckAllPlayersReady() {
             if (!isHost) return;
 
-            LogInfo($"Checking if all {allPlayerStates.Count} players are ready (min: {minPlayersToStart})");
-
             if (allPlayerStates.Count < minPlayersToStart) {
-                LogInfo("Not enough players to start");
                 return;
             }
 
@@ -605,13 +608,11 @@ namespace Dyson.Scripts.Lobby
             foreach (var pair in allPlayerStates) {
                 if (!pair.Value.isReady) {
                     allReady = false;
-                    LogInfo($"Player {pair.Value.name} (ID: {pair.Key}) is not ready");
                     break;
                 }
             }
 
             if (allReady) {
-                LogInfo("All players ready, starting game!");
                 StartGame();
             }
         }
@@ -621,12 +622,11 @@ namespace Dyson.Scripts.Lobby
         #region Game Start Methods
 
         /// <summary>
-        /// Starts the game.
+        /// Initiates the process of starting the game by changing state and notifying clients.
         /// </summary>
         private void StartGame() {
             SetLobbyState(LobbyState.Starting);
 
-            // Cancel the timeout coroutine.
             if (lobbyTimeoutCoroutine != null) {
                 StopCoroutine(lobbyTimeoutCoroutine);
                 lobbyTimeoutCoroutine = null;
@@ -636,20 +636,19 @@ namespace Dyson.Scripts.Lobby
                 networkClient.SendMessagePacket("START_GAME");
             }
             else {
-                LogError("Cannot start game: NetworkClient is null");
                 SetLobbyState(LobbyState.Error);
                 errorMessage = "Cannot start game: NetworkClient is null";
                 UpdateStatusText("Error: Cannot start game");
                 return;
             }
 
-            // Wait a moment to ensure the message is sent.
             startGameCoroutine = StartCoroutine(StartGameCoroutine());
         }
 
         /// <summary>
-        /// Coroutine to load the game scene after a delay.
+        /// Coroutine that waits briefly before loading the main game scene.
         /// </summary>
+        /// <returns>An IEnumerator for the coroutine.</returns>
         private IEnumerator StartGameCoroutine() {
             UpdateStatusText("Starting game...");
             yield return new WaitForSeconds(0.5f);
@@ -657,16 +656,13 @@ namespace Dyson.Scripts.Lobby
         }
 
         /// <summary>
-        /// Loads the game scene.
+        /// Loads the main game scene specified by gameSceneName.
         /// </summary>
         private void LoadGameScene() {
-            LogInfo($"Loading game scene: {gameSceneName}");
-
             try {
                 SceneManager.LoadScene(gameSceneName);
             }
             catch (Exception e) {
-                LogError($"Failed to load game scene: {e.Message}");
                 SetLobbyState(LobbyState.Error);
                 errorMessage = $"Failed to load game scene: {e.Message}";
                 UpdateStatusText("Error: Failed to load game scene");
@@ -674,12 +670,9 @@ namespace Dyson.Scripts.Lobby
         }
 
         /// <summary>
-        /// Called when a START_GAME message is received.
+        /// Called when a START_GAME message is received from the network. Initiates scene loading.
         /// </summary>
         public void OnStartGameMessageReceived() {
-            LogInfo("Start game message received, loading game scene");
-
-            // Cancel the timeout coroutine.
             if (lobbyTimeoutCoroutine != null) {
                 StopCoroutine(lobbyTimeoutCoroutine);
                 lobbyTimeoutCoroutine = null;
@@ -690,32 +683,26 @@ namespace Dyson.Scripts.Lobby
         }
 
         /// <summary>
-        /// Coroutine to handle lobby timeout.
+        /// Coroutine that handles the lobby timeout logic. If time expires, the host may start the game or an error occurs.
         /// </summary>
+        /// <returns>An IEnumerator for the coroutine.</returns>
         private IEnumerator LobbyTimeoutCoroutine() {
             while (lobbyTimeoutTimer > 0) {
                 yield return new WaitForSeconds(1f);
                 lobbyTimeoutTimer -= 1f;
             }
 
-            // Timeout reached
-            LogWarning("Lobby timeout reached");
-
             if (isHost) {
-                // Host can force start if minimum players are met.
                 if (allPlayerStates.Count >= minPlayersToStart) {
-                    LogInfo("Timeout reached with enough players, starting game");
                     StartGame();
                 }
                 else {
-                    LogWarning("Timeout reached without enough players");
                     SetLobbyState(LobbyState.Error);
                     errorMessage = "Timeout reached without enough players";
                     UpdateStatusText("Error: Not enough players joined");
                 }
             }
             else {
-                // Non-host clients just show an error.
                 SetLobbyState(LobbyState.Error);
                 errorMessage = "Lobby timed out";
                 UpdateStatusText("Error: Lobby timed out");
@@ -727,42 +714,30 @@ namespace Dyson.Scripts.Lobby
         #region State Management Methods
 
         /// <summary>
-        /// Sets the lobby state.
+        /// Sets the internal state of the lobby.
         /// </summary>
-        /// <param name="newState">The new state.</param>
+        /// <param name="newState">The new LobbyState to transition to.</param>
         private void SetLobbyState(LobbyState newState) {
-            LogInfo($"Changing lobby state from {currentState} to {newState}");
             currentState = newState;
 
-            // Additional state-specific logic can be added here.
             switch (newState) {
                 case LobbyState.Initializing:
-                    // Nothing to do.
                     break;
-
                 case LobbyState.Connecting:
-                    // Nothing to do.
                     break;
-
                 case LobbyState.Waiting:
-                    // Nothing to do.
                     break;
-
                 case LobbyState.Starting:
-                    // Nothing to do.
                     break;
-
                 case LobbyState.Error:
-                    // Error handling.
-                    LogError($"Lobby entered error state: {errorMessage}");
                     break;
             }
         }
 
         /// <summary>
-        /// Updates the status text.
+        /// Updates the status text displayed in the UI, either with a specific message or based on the current lobby state.
         /// </summary>
-        /// <param name="message">The message to display.</param>
+        /// <param name="message">An optional specific message to display. If null, uses a default message for the current state.</param>
         private void UpdateStatusText(string message = null) {
             if (statusText == null) return;
 
@@ -771,59 +746,23 @@ namespace Dyson.Scripts.Lobby
                 return;
             }
 
-            // Update based on current state.
             switch (currentState) {
                 case LobbyState.Initializing:
                     statusText.text = "Initializing lobby...";
                     break;
-
                 case LobbyState.Connecting:
                     statusText.text = "Connecting to lobby...";
                     break;
-
                 case LobbyState.Waiting:
                     statusText.text = $"In Lobby - {allPlayerStates.Count} players";
                     break;
-
                 case LobbyState.Starting:
                     statusText.text = "Starting game...";
                     break;
-
                 case LobbyState.Error:
                     statusText.text = $"Error: {errorMessage}";
                     break;
             }
-        }
-
-        #endregion
-
-        #region Logging Methods
-
-        /// <summary>
-        /// Logs an informational message.
-        /// </summary>
-        /// <param name="message">The message to log.</param>
-        private void LogInfo(string message) {
-            if (verboseLogging || message.Contains("error") || message.Contains("Error")) {
-                Debug.Log($"[Lobby] {message}");
-            }
-        }
-
-        /// <summary>
-        /// Logs a warning message.
-        /// </summary>
-        /// <param name="message">The message to log.</param>
-        private void LogWarning(string message) {
-            Debug.LogWarning($"[Lobby] WARNING: {message}");
-        }
-
-        /// <summary>
-        /// Logs an error message.
-        /// </summary>
-        /// <param name="message">The message to log.</param>
-        private void LogError(string message) {
-            if (false) // Im deactivating this on purpose.
-            Debug.LogError($"[Lobby] ERROR: {message}");
         }
 
         #endregion

@@ -22,12 +22,12 @@ namespace Dyson.Scripts.Lobby
         [SerializeField] private bool verboseLogging = false;
         
         private ClientState _clientState;
-        private Lobby _lobby;
+        private __SAE.Dyson.Scripts.Lobby.Lobby _lobby;
         private bool _isLocalPlayer = false;
         
         public void Setup(ClientState clientState)
         {
-            _lobby = FindObjectOfType<Lobby>();
+            _lobby = FindObjectOfType<__SAE.Dyson.Scripts.Lobby.Lobby>();
             _clientState = clientState;
             
             // Check if this is the local player.
