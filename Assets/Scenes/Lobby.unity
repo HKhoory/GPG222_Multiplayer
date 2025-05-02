@@ -963,8 +963,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b5daffadd97a1244b963e27ddcbb026, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerNameInput: {fileID: 0}
-  defaultNamePrefix: Player
+  playerNameInput: {fileID: 305226023}
+  defaultNamePrefix: Oh I didn't input my name so i must be dumb
   connectionPanel: {fileID: 1836797725}
   lobbyPanel: {fileID: 1809315030}
   ipAddressInput: {fileID: 1660126847}

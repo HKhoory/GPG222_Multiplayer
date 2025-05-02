@@ -109,7 +109,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -160, y: -25}
+  m_AnchoredPosition: {x: -160, y: -28.9}
   m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6649930961093390967
@@ -515,10 +515,7 @@ MonoBehaviour:
   playerNameText: {fileID: 2158460078972767409}
   readyStatusImage: {fileID: 0}
   hostIndicator: {fileID: 0}
-  localPlayerBackgroundColor: {r: 0.2, g: 0.6, b: 0.2, a: 1}
-  hostPlayerBackgroundColor: {r: 0.6, g: 0.4, b: 0.2, a: 1}
-  regularPlayerBackgroundColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
-  backgroundPanel: {fileID: 0}
+  statusText: {fileID: 0}
   notReadyColor: {r: 1, g: 0, b: 0, a: 1}
   readyColor: {r: 0, g: 1, b: 0, a: 1}
   verboseLogging: 0
@@ -582,11 +579,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerNameText: {fileID: 2158460078972767409}
   readyStatusImage: {fileID: 8423996074448033300}
-  hostIndicator: {fileID: 0}
-  localPlayerBackgroundColor: {r: 0.2, g: 0.6, b: 0.2, a: 1}
-  hostPlayerBackgroundColor: {r: 0.6, g: 0.4, b: 0.2, a: 1}
-  regularPlayerBackgroundColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
-  backgroundPanel: {fileID: 6620629619680551682}
+  hostIndicator: {fileID: 2090832102255917980}
+  statusText: {fileID: 4161506984415988946}
   notReadyColor: {r: 1, g: 0, b: 0, a: 1}
   readyColor: {r: 0, g: 1, b: 0, a: 1}
   verboseLogging: 0
