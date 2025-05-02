@@ -399,6 +399,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 234615609}
+  - component: {fileID: 234615610}
   m_Layer: 0
   m_Name: Managers & References
   m_TagString: Untagged
@@ -425,6 +426,22 @@ Transform:
   - {fileID: 1911981123}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &234615610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 234615608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5cb77fc19d30a6243820570dc48ca0c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerPrefab: {fileID: 1066179444685803727, guid: 20e7d87ecdfb3b848921de998051075b, type: 3}
+  spawnPoints: []
+  gameUI: {fileID: 835152480}
+  networkClient: {fileID: 1577052029}
 --- !u!1 &307544515
 GameObject:
   m_ObjectHideFlags: 0

@@ -147,7 +147,7 @@ namespace Dyson.Scripts.Lobby
 
             // Create local player state.
             if (localPlayerState == null) {
-                localPlayerState = gameObject.AddComponent<ClientState>();
+                localPlayerState = new ClientState();
             }
 
             localPlayerState.isReady = false;
@@ -161,32 +161,39 @@ namespace Dyson.Scripts.Lobby
             }
         }
 
-        /// <summary>
-        /// Registers event handlers for network messages.
-        /// </summary>
-        private void RegisterEventHandlers() {
-            if (networkClient != null) {
-                PacketHandler packetHandler = networkClient.GetPacketHandler();
-                if (packetHandler != null) {
-                    packetHandler.OnPlayerReadyStateChanged += HandlePlayerReadyState;
-                    packetHandler.OnMessageReceived += HandleLobbyMessage;
-                }
-                else {
-                    LogError("PacketHandler is null!");
-                }
+        private void RegisterEventHandlers()
+        {
+            if (networkClient != null)
+            {
+                StartCoroutine(WaitForPacketHandlerAndRegister());
             }
-            else {
-                LogError("NetworkClient is still null after Start!");
+            else
+            {
+                LogError("NetworkClient is still null during event registration!");
             }
         }
 
-        /// <summary>
-        /// Unregisters event handlers.
-        /// </summary>
-        private void UnregisterEventHandlers() {
-            if (networkClient != null) {
+        private IEnumerator WaitForPacketHandlerAndRegister()
+        {
+            while (networkClient.GetPacketHandler() == null)
+            {
+                LogInfo("Waiting for NetworkClient's PacketHandler to be ready...");
+                yield return null;
+            }
+
+            LogInfo("PacketHandler is ready. Registering events.");
+            PacketHandler packetHandler = networkClient.GetPacketHandler();
+            packetHandler.OnPlayerReadyStateChanged += HandlePlayerReadyState;
+            packetHandler.OnMessageReceived += HandleLobbyMessage;
+        }
+
+        private void UnregisterEventHandlers()
+        {
+            if (networkClient != null)
+            {
                 PacketHandler packetHandler = networkClient.GetPacketHandler();
-                if (packetHandler != null) {
+                if (packetHandler != null) 
+                {
                     packetHandler.OnPlayerReadyStateChanged -= HandlePlayerReadyState;
                     packetHandler.OnMessageReceived -= HandleLobbyMessage;
                 }
