@@ -39,6 +39,7 @@ namespace Dyson_GPG222_Server
         {
             // Leo: this will be enabled only if a player is hosting.
             enabled = false;
+            instance = this;
         }
         
 
@@ -54,16 +55,22 @@ namespace Dyson_GPG222_Server
             Port = port;
             Debug.Log($"Server started on {Port}");
 
+
+            
             tcpListener = new TcpListener(IPAddress.Any, Port);
-            tcpListener.Start();
-            tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
-    
+            if (tcpListener != null) {
+                tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                tcpListener.Start();
+                tcpListener.BeginAcceptTcpClient(TCPConnectCallback, null);
+            }
+
             InitializeServerData();
         }
 
         private static void InitializeServerData()
         {
             clients.Clear();
+            connectedPlayers.Clear();
             Debug.Log($"Server.cs: Initialized server data.");
         }
 
@@ -165,6 +172,13 @@ namespace Dyson_GPG222_Server
                 byte[] data = new byte[bytesRead];
                 Array.Copy(state.Buffer, data, bytesRead);
 
+                // Process the received data - CRITICAL FIX: Now we actually process the data
+                if (instance != null)
+                {
+                    instance.ProcessReceivedData(data, state.ClientId);
+                }
+                
+                // Continue reading
                 stream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
             }
             catch (Exception e)
@@ -208,6 +222,13 @@ namespace Dyson_GPG222_Server
                         PlayersPositionDataPacket positionPacket = new PlayersPositionDataPacket().Deserialize(data);
                         Debug.Log(
                             $"Server.cs: Received position updates for {positionPacket.PlayerPositionData.Count} players.");
+                        
+                        // Update player data in connectedPlayers if we have position data
+                        if (positionPacket.PlayerPositionData.Count > 0 && positionPacket.PlayerPositionData[0].playerData != null)
+                        {
+                            connectedPlayers[clientId] = positionPacket.PlayerPositionData[0].playerData;
+                        }
+                        
                         Broadcast(basePacket.packetType, data, clientId);
                         break;
 
@@ -223,24 +244,27 @@ namespace Dyson_GPG222_Server
                         PingPacket pingPacket = new PingPacket().Deserialize(data);
                         Debug.Log($"Server.cs: Received ping from {pingPacket.playerData.name}");
     
-                        if (connectedPlayers.ContainsKey(clientId))
+                        // Store player data from ping packets too
+                        if (!connectedPlayers.ContainsKey(clientId))
                         {
-                            PingResponsePacket responsePacket = new PingResponsePacket(pingPacket.playerData, pingPacket.Timestamp);
-                            byte[] responseData = responsePacket.Serialize();
-        
-                            // Send directly back to the one who sent it only.
-                            if (clients.ContainsKey(clientId) && clients[clientId].Socket != null && clients[clientId].Socket.Connected)
+                            connectedPlayers[clientId] = pingPacket.playerData;
+                        }
+                        
+                        PingResponsePacket responsePacket = new PingResponsePacket(pingPacket.playerData, pingPacket.Timestamp);
+                        byte[] responseData = responsePacket.Serialize();
+    
+                        // Send directly back to the one who sent it only.
+                        if (clients.ContainsKey(clientId) && clients[clientId].Socket != null && clients[clientId].Socket.Connected)
+                        {
+                            try
                             {
-                                try
-                                {
-                                    NetworkStream stream = clients[clientId].Socket.GetStream();
-                                    stream.Write(responseData, 0, responseData.Length);
-                                    //Debug.Log($"Server.cs: Sent ping response to {clientId}");
-                                }
-                                catch (Exception e)
-                                {
-                                    Debug.LogError($"Server.cs: Error sending ping response: {e.Message}");
-                                }
+                                NetworkStream stream = clients[clientId].Socket.GetStream();
+                                stream.Write(responseData, 0, responseData.Length);
+                                //Debug.Log($"Server.cs: Sent ping response to {clientId}");
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.LogError($"Server.cs: Error sending ping response: {e.Message}");
                             }
                         }
                         break;
@@ -249,28 +273,48 @@ namespace Dyson_GPG222_Server
                     case Packet.PacketType.PushEvent:
                         PushEventPacket pushPacket = new PushEventPacket().Deserialize(data);
                         Debug.Log($"Server.cs: Received push event targeting player with tag {pushPacket.TargetPlayerTag}");
+                        
+                        // Update player data if not already stored
+                        if (!connectedPlayers.ContainsKey(clientId))
+                        {
+                            connectedPlayers[clientId] = pushPacket.playerData;
+                        }
+                        
                         Broadcast(basePacket.packetType, data, clientId);
                         Debug.Log($"Received packet type: {basePacket.packetType}");
                         break;
                     
                     case Packet.PacketType.JoinLobby:
                         LobbyPacket lobbyPacket = new LobbyPacket().Deserialize(data);
-                        Debug.Log("test test test");
-                       /* ClientState newPlayer = new ClientState();
-                        newPlayer.Client = clients[clientId].Socket;
-                        newPlayer.ClientId = clientId;
-                        lobby.AddPlayerToLobby(newPlayer);
-                        connectedPlayers[clientId] = lobbyPacket._playerData; */
-                      /* if (connectedPlayers.Count >= MaxPlayers)
-                       {
-                            Debug.Log("All players are in the lobby, we can start the game!");
-                            SceneManager.LoadScene(1);
-                        } */
-                       // Debug.Log($"{newPlayer.ClientId} is joining the lobby!");
-                        Broadcast(basePacket.packetType, data, clientId);
+                        Debug.Log($"Server.cs: Player {lobbyPacket.playerData.name} is joining the lobby");
+                        
+                        // Store player data
+                        connectedPlayers[clientId] = lobbyPacket.playerData;
+                        
+                        // Create a specific message packet for joining the lobby
+                        MessagePacket joinMessage = new MessagePacket(lobbyPacket.playerData, "JOIN_LOBBY");
+                        byte[] joinData = joinMessage.Serialize();
+                        
+                        // Broadcast to all other connected clients
+                        Broadcast(Packet.PacketType.Message, joinData, -1); // -1 means broadcast to all
                         break;
+                        
+                    case Packet.PacketType.ReadyInLobby:
+                        ReadyInLobbyPacket readyPacket = new ReadyInLobbyPacket().Deserialize(data);
+                        Debug.Log($"Server.cs: Player {readyPacket.playerData.name} ready state: {readyPacket.isPlayerReady}");
+                        
+                        // Store player data if needed
+                        if (!connectedPlayers.ContainsKey(clientId))
+                        {
+                            connectedPlayers[clientId] = readyPacket.playerData;
+                        }
+                        
+                        // Broadcast to all clients
+                        Broadcast(basePacket.packetType, data, -1);
+                        break;
+                        
                     default:
-                        Debug.Log($"Server.cs: Unknown packet type received.");
+                        Debug.Log($"Server.cs: Unknown packet type received: {basePacket.packetType}");
                         break;
                 }
             }
@@ -308,7 +352,7 @@ namespace Dyson_GPG222_Server
                 allPlayersPosition.Add(playerPositionData);
             }
 
-            if (allPlayersPosition.Count > 0)
+            if (allPlayersPosition.Count > 0 && connectedPlayers.ContainsKey(newClientId))
             {
                 // Create a packet with the information of all the positions of the players.
                 PlayersPositionDataPacket positionDataPacket =
@@ -338,34 +382,49 @@ namespace Dyson_GPG222_Server
         // LEO: I'm adding this function so the server can broadcast to all clients.
         private static void Broadcast(Packet.PacketType packetType, byte[] data, int senderId)
         {
+            int clientCount = clients.Count;
+            string clientIds = string.Join(", ", clients.Keys);
+            Debug.LogWarning(
+                $"Broadcasting data of type {packetType} from client {senderId}. Total clients: {clientCount}, client IDs: {clientIds}");
+
+            foreach (var client in clients)
             {
-                int clientCount = clients.Count;
-                int otherClientsCount = clientCount - 1;
-
-                string clientIds = string.Join(", ", clients.Keys);
-                Debug.LogWarning(
-                    $"Broadcasting data of type {packetType} from client {senderId}. Total clients: {clientCount}, other clients: {otherClientsCount}, client IDs: {clientIds}");
-
-                foreach (var client in clients)
+                try
                 {
-                    try
-                    {
-                        Debug.LogWarning($"Broadcasting to client {client.Key} from sender {senderId}");
-                        // Skip sender.
-                        if (client.Key == senderId) continue;
+                    // Skip sender unless senderId is -1 (broadcast to all)
+                    if (senderId != -1 && client.Key == senderId) continue;
 
-                        if (client.Value.Socket != null && client.Value.Socket.Connected)
-                        {
-                            NetworkStream stream = client.Value.Socket.GetStream();
-                            stream.Write(data, 0, data.Length);
-                        }
-                    }
-                    catch (Exception e)
+                    if (client.Value.Socket != null && client.Value.Socket.Connected)
                     {
-                        Debug.LogError($"Server.cs: Error broadcasting data: {e.Message}");
+                        NetworkStream stream = client.Value.Socket.GetStream();
+                        stream.Write(data, 0, data.Length);
+                        Debug.LogWarning($"Broadcast to client {client.Key} successful");
                     }
                 }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Server.cs: Error broadcasting data to client {client.Key}: {e.Message}");
+                }
             }
+        }
+        
+        private void OnDestroy()
+        {
+            if (tcpListener != null)
+            {
+                tcpListener.Stop();
+            }
+            
+            foreach (var client in clients.Values)
+            {
+                if (client.Socket != null && client.Socket.Connected)
+                {
+                    client.Socket.Close();
+                }
+            }
+            
+            clients.Clear();
+            connectedPlayers.Clear();
         }
     }
 }

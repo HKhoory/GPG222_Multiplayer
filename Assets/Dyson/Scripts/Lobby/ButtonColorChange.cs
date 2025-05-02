@@ -1,52 +1,133 @@
 using System.Collections;
-using System.Collections.Generic;
-using Dyson.GPG222.Lobby;
 using Leonardo.Scripts.ClientRelated;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ButtonColorChange : MonoBehaviour
+namespace Dyson.Scripts.Lobby
 {
-    public Button readyButton;
-    public bool isPlayerReady = false; 
-    public ClientState playerClientState;
+    public class ButtonColorChange : MonoBehaviour
+    {
+        [Header("Button Settings")]
+        public Button readyButton;
+        public Color readyColor = Color.green;
+        public Color notReadyColor = Color.red;
     
-    void Start()
-    {
-        readyButton.onClick.AddListener(SetPlayerReady);
-        
-        Lobby lobby = FindObjectOfType<Lobby>();
-        if (lobby != null)
+        [Header("References")]
+        public ClientState playerClientState;
+    
+        [Header("UI Elements")]
+        public TextMeshProUGUI buttonText;
+    
+        [HideInInspector]
+        public bool isPlayerReady = false;
+    
+        private NetworkClient _networkClient;
+        private GPG222.Lobby.Lobby _lobby;
+        private bool _buttonClicked = false;
+    
+        void Start()
         {
-            playerClientState = lobby.localPlayerState;
-        }
-    }
-
-    void SetPlayerReady()
-    {
-        Color readyColor = Color.green;
-        readyButton.GetComponent<Image>().color = readyColor;
-        
-        isPlayerReady = true;
-        if (playerClientState != null)
-        {
-            playerClientState.isReady = true;
-        }
-
-        NetworkClient networkClient = FindObjectOfType<NetworkClient>();
-        if (networkClient != null)
-        {
-            networkClient.SendPlayerReadyState(true);
-        }
-
-        if (PlayerPrefs.GetInt("IsHost", 0) == 1)
-        {
-            Lobby lobby = FindObjectOfType<Lobby>();
-            if (lobby != null)
+            if (readyButton == null)
             {
-                lobby.CheckAllPlayersReady();
+                readyButton = GetComponent<Button>();
+            }
+        
+            if (buttonText == null && readyButton != null)
+            {
+                buttonText = readyButton.GetComponentInChildren<TextMeshProUGUI>();
+            }
+        
+            if (readyButton != null)
+            {
+                Image buttonImage = readyButton.GetComponent<Image>();
+                if (buttonImage != null)
+                {
+                    buttonImage.color = notReadyColor;
+                }
+            }
+        
+            _lobby = FindObjectOfType<GPG222.Lobby.Lobby>();
+            _networkClient = FindObjectOfType<NetworkClient>();
+        
+            if (_lobby != null)
+            {
+                playerClientState = _lobby.LocalPlayerClientState;
+            }
+        
+            if (readyButton != null)
+            {
+                readyButton.onClick.AddListener(SetPlayerReady);
+            }
+        
+            StartCoroutine(CheckPlayerReady());
+        }
+    
+        private IEnumerator CheckPlayerReady()
+        {
+            yield return new WaitForSeconds(1.0f);
+        
+            if (playerClientState != null && playerClientState.isReady)
+            {
+                UpdateReadyUI(true);
             }
         }
+    
+        void SetPlayerReady()
+        {
+            if (_buttonClicked) return;
+            _buttonClicked = true;
         
+            isPlayerReady = true;
+        
+            if (playerClientState != null)
+            {
+                playerClientState.isReady = true;
+            }
+        
+            UpdateReadyUI(true);
+        
+            if (_networkClient != null)
+            {
+                _networkClient.SendPlayerReadyState(true);
+                Debug.Log($"ButtonColorChange: Sent ready state (true) to server");
+            }
+            else
+            {
+                Debug.LogError("ButtonColorChange: NetworkClient not found!");
+            }
+        
+            if (PlayerPrefs.GetInt("IsHost", 0) == 1 && _lobby != null)
+            {
+                _lobby.CheckAllPlayersReady();
+            }
+        }
+    
+        private void UpdateReadyUI(bool ready)
+        {
+            Image buttonImage = readyButton.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = ready ? readyColor : notReadyColor;
+            }
+        
+            if (buttonText != null)
+            {
+                buttonText.text = ready ? "Ready" : "Ready?";
+            }
+        
+            if (ready)
+            {
+                readyButton.interactable = false;
+            }
+        }
+    
+        void OnDestroy()
+        {
+            if (readyButton != null)
+            {
+                readyButton.onClick.RemoveListener(SetPlayerReady);
+            }
+        }
     }
 }

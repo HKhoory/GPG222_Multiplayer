@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Net.Sockets;
+using UnityEngine;
 
 namespace Leonardo.Scripts.Networking
 {
@@ -17,15 +18,19 @@ namespace Leonardo.Scripts.Networking
         
         public bool IsConnected => _isConnected;
 
-        //Hamad: Adding variables for HeartBeat
-        
+        // Heartbeat settings
         private float heartbeatInterval = 5f;
+        private float heartbeatTimer = 0f;
+        private float lastHeartbeatTime = 0f;
+        private float heartbeatTimeout = 10f;
+        private bool useHeartbeatSystem = false;
 
 
         public NetworkConnection(string ipAddress, int port)
         {
             this.ipAddress = ipAddress;
             this.port = port;
+            ResetHeartbeat();
         }
         
         public bool Connect()
@@ -39,13 +44,15 @@ namespace Leonardo.Scripts.Networking
                 if (_socket.Connected)
                 {
                     _isConnected = true;
+                    ResetHeartbeat();
                     OnConnected?.Invoke();
+                    UnityEngine.Debug.Log($"NetworkConnection: Successfully connected to {ipAddress}:{port}");
                     return true;
                 }
             }
             catch (SocketException e)
             {
-                UnityEngine.Debug.LogWarning($"Connection error: {e.Message}");
+                UnityEngine.Debug.LogWarning($"NetworkConnection: Connection error: {e.Message}");
             }
             
             return false;
@@ -53,18 +60,45 @@ namespace Leonardo.Scripts.Networking
         
         public void Update()
         {
-            heartbeatInterval -= 0.01f; //deducting the interval (time.deltatime dude)
+            if (!_isConnected || _socket == null)
+                return;
 
-            if (_socket != null && _socket.Connected && _socket.Available > 0)
+            if (useHeartbeatSystem) 
+            {
+                // Update heartbeat timer
+                heartbeatTimer -= Time.deltaTime;
+                float timeSinceLastHeartbeat = Time.time - lastHeartbeatTime;
+            
+                // Send heartbeat if timer expired
+                if (heartbeatTimer <= 0)
+                {
+                    SendHeartbeat();
+                    heartbeatTimer = heartbeatInterval;
+                }
+            
+                // Check for heartbeat timeout
+                if (timeSinceLastHeartbeat > heartbeatTimeout)
+                {
+                    UnityEngine.Debug.LogWarning("NetworkConnection: Heartbeat timeout, disconnecting");
+                    Disconnect();
+                    return;
+                }
+            }
+
+            // Check for incoming data
+            if (_socket != null && _socket.Connected)
             {
                 try
                 {
-                    byte[] buffer = new byte[_socket.Available];
-                    _socket.Receive(buffer);
-                    
-                    if (buffer.Length > 0)
+                    if (_socket.Available > 0)
                     {
-                        OnDataReceived?.Invoke(buffer);
+                        byte[] buffer = new byte[_socket.Available];
+                        _socket.Receive(buffer);
+                        
+                        if (buffer.Length > 0)
+                        {
+                            OnDataReceived?.Invoke(buffer);
+                        }
                     }
                 }
                 catch (SocketException e)
@@ -75,6 +109,11 @@ namespace Leonardo.Scripts.Networking
                         Disconnect();
                     }
                 }
+            }
+            else if (_isConnected)
+            {
+                // Socket disconnected but we haven't updated our state
+                Disconnect();
             }
         }
         
@@ -90,63 +129,67 @@ namespace Leonardo.Scripts.Networking
             {
                 if (e.SocketErrorCode != SocketError.WouldBlock)
                 {
-                    UnityEngine.Debug.LogError($"NetworkConnection.cs: {e.Message}");
+                    UnityEngine.Debug.LogError($"NetworkConnection.cs: Send error: {e.Message}");
 
-                    //Hamad: adding in Mustafa's code until I figure out integrating heartbeat
-                    //need to add that heartbeat wasn't detected for around 5 seconds
-
-                    if (e.SocketErrorCode == SocketError.ConnectionAborted || e.SocketErrorCode == SocketError.ConnectionReset)
+                    if (e.SocketErrorCode == SocketError.ConnectionAborted || 
+                        e.SocketErrorCode == SocketError.ConnectionReset)
                     {
-                        Console.WriteLine("Server disconnected");
-                        _socket.Close();
-                        return;
+                        UnityEngine.Debug.LogWarning("NetworkConnection: Server disconnected");
+                        Disconnect();
                     }
-
                 }
             }
         }
 
+        private void SendHeartbeat()
+        {
+            // This would be implemented in NetworkClient, which would call
+            // its SendHeartBeat() method when this is triggered
+        }
 
-        //Gets called if the heartbeat exists
+        // Called when a heartbeat is received
         public void CheckHeartbeat()
         {
-
-            if (heartbeatInterval <= 0)
-            {
-
-                Disconnect();
-
-            }
-
-            else
-            {
-                heartbeatInterval = 5f;
-            }
-
-
-
+            // Reset the heartbeat timer
+            ResetHeartbeat();
         }
         
+        private void ResetHeartbeat()
+        {
+            heartbeatTimer = heartbeatInterval;
+            lastHeartbeatTime = Time.time;
+        }
         
         public void Disconnect()
         {
-            if (_socket != null && _socket.Connected)
+            if (_socket != null)
             {
-                _socket.Close();
+                try
+                {
+                    if (_socket.Connected)
+                    {
+                        _socket.Shutdown(SocketShutdown.Both);
+                        _socket.Close();
+                    }
+                    else
+                    {
+                        _socket.Close();
+                    }
+                }
+                catch (Exception e)
+                {
+                    UnityEngine.Debug.LogError($"NetworkConnection: Error during disconnect: {e.Message}");
+                }
+                
+                _socket = null;
+            }
+            
+            if (_isConnected)
+            {
                 _isConnected = false;
                 OnDisconnected?.Invoke();
+                UnityEngine.Debug.Log("NetworkConnection: Disconnected from server");
             }
-
-            else if (heartbeatInterval <= 0)
-            {
-                _socket.Close();
-                _isConnected = false;
-                OnDisconnected?.Invoke();
-            }
-
         }
-
-        
-
     }
 }

@@ -285,9 +285,9 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 623379793}
   - {fileID: 1848754178}
   - {fileID: 1577052030}
-  - {fileID: 623379793}
   - {fileID: 1911981123}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -841,11 +841,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bbe2c6c51b955f40a71f19777dda9dc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameSceneName: GameScene
+  gameSceneName: Gameplay
   minPlayersToStart: 2
-  localPlayerState: {fileID: 1911981122}
+  initialJoinDelay: 0.5
+  localPlayerState: {fileID: 0}
   playersContainer: {fileID: 307544516}
   playerCardPrefab: {fileID: 9149958383428980565, guid: 8da4c68a1b2774348a4eecea57e1c14e, type: 3}
+  statusText: {fileID: 3883293696961328357}
 --- !u!1 &708228609
 GameObject:
   m_ObjectHideFlags: 0
@@ -1574,10 +1576,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerNamePrefix: Client-Player
   ipAddress: 127.0.0.1
-  connectionOnStart: 1
+  connectionOnStart: 0
   port: 2121
   playerPrefab: {fileID: 1066179444685803727, guid: 20e7d87ecdfb3b848921de998051075b, type: 3}
   updateInterval: 0.1
+  heartbeatInterval: 2
+  reconnectInterval: 5
   isHost: 0
 --- !u!4 &1577052030
 Transform:
@@ -1990,7 +1994,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxPlayers: 4
   port: 2121
-  startServerOnAwake: 1
   lobby: {fileID: 623379794}
   _joinLobby: {fileID: 1836797729}
   isServerFull: 0
@@ -2003,7 +2006,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1911981123}
-  - component: {fileID: 1911981122}
   m_Layer: 0
   m_Name: ClientState
   m_TagString: Untagged
@@ -2011,21 +2013,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1911981122
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1911981121}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc2f757de8cfb034394b18f3f99c3fc3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ClientId: 0
-  Buffer: 
-  isReady: 0
 --- !u!4 &1911981123
 Transform:
   m_ObjectHideFlags: 0
@@ -2373,8 +2360,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   readyButton: {fileID: 800440431600256619}
+  readyColor: {r: 0, g: 1, b: 0, a: 1}
+  notReadyColor: {r: 1, g: 0, b: 0, a: 1}
+  playerClientState: {fileID: 0}
+  buttonText: {fileID: 0}
   isPlayerReady: 0
-  playerClientState: {fileID: 1911981122}
 --- !u!1 &2707558515700249567
 GameObject:
   m_ObjectHideFlags: 0

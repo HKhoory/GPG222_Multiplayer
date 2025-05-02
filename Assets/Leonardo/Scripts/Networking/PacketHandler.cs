@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Resources;
 using Dyson.GPG222.Lobby;
 using UnityEngine;
 using Hamad.Scripts;
@@ -12,7 +11,6 @@ using Leonardo.Scripts.Controller;
 using Leonardo.Scripts.Packets;
 using Leonardo.Scripts.Player;
 using Hamad.Scripts.Restart;
-using UnityEngine.SceneManagement;
 
 namespace Leonardo.Scripts.Networking
 {
@@ -23,15 +21,13 @@ namespace Leonardo.Scripts.Networking
         public event Action OnPingResponseReceived;
         public event Action<int, Vector3, string> OnPushEventReceived;
         public event Action<PlayerData, bool> OnPlayerReadyStateChanged;
-
-        //Hamad: adding event for HeartBeatReceived and Restart
         public event Action OnHeartbeat;
         public event Action<byte> OnHeartbeatReceived;
-
         public event Action<byte> OnRestart;
-
         public event Action<byte[]> OnJoiningLobby; 
+        
         private PlayerData _localPlayerData;
+        private Dictionary<int, PlayerData> _knownPlayers = new Dictionary<int, PlayerData>();
 
         public PacketHandler(PlayerData localPlayerData)
         {
@@ -45,10 +41,17 @@ namespace Leonardo.Scripts.Networking
                 Debug.LogWarning("PacketHandler.cs: Received null or empty data packet");
                 return;
             }
+            
             try
             {
                 Packet basePacket = new Packet();
                 basePacket.Deserialize(data);
+                
+                // Cache player data from all packets to build a mapping between tags and client IDs
+                if (basePacket.playerData != null)
+                {
+                    _knownPlayers[basePacket.playerData.tag] = basePacket.playerData;
+                }
 
                 switch (basePacket.packetType)
                 {
@@ -67,7 +70,6 @@ namespace Leonardo.Scripts.Networking
                     case Packet.PacketType.PushEvent:
                         try
                         {
-                            Debug.Log("PacketHandler.cs: Attempting to process push event packet");
                             ProcessPushEventPacket(data);
                         }
                         catch (Exception e)
@@ -83,9 +85,10 @@ namespace Leonardo.Scripts.Networking
                         }
                         catch (Exception e)
                         {
-                            Debug.LogError("No heartbeat byte found");
+                            Debug.LogError($"PacketHandler.cs: Error processing heartbeat: {e.Message}");
                         }
                         break;
+                        
                     case Packet.PacketType.Restart:
                         try
                         {
@@ -93,9 +96,10 @@ namespace Leonardo.Scripts.Networking
                         }
                         catch (Exception e)
                         {
-                            Debug.LogError("No restart packet found");
+                            Debug.LogError($"PacketHandler.cs: Error processing restart packet: {e.Message}");
                         }
                         break;
+                        
                     case Packet.PacketType.JoinLobby:
                         try
                         {
@@ -103,9 +107,10 @@ namespace Leonardo.Scripts.Networking
                         }
                         catch (Exception e)
                         {
-                            Debug.LogError("No lobby found");
+                            Debug.LogError($"PacketHandler.cs: Error processing lobby packet: {e.Message}");
                         }
                         break;
+                        
                     case Packet.PacketType.ReadyInLobby:
                         try
                         {
@@ -113,7 +118,7 @@ namespace Leonardo.Scripts.Networking
                         }
                         catch (Exception e)
                         {
-                            Debug.LogError($"Error processing ready state packet: {e.Message}");
+                            Debug.LogError($"PacketHandler.cs: Error processing ready state packet: {e.Message}");
                         }
                         break;
 
@@ -153,84 +158,49 @@ namespace Leonardo.Scripts.Networking
             OnPingResponseReceived?.Invoke();
         }
 
-        //Hamad: adding the heartbeat and restart action
         private void ProcessHeartbeatPacket(byte[] data)
         {
-
-            byte heartbeat = data[0];
-            if (data != null) {
-                HeartbeatPacket heartbeatPacket = new HeartbeatPacket().Deserialize(data);
-                OnHeartbeatReceived?.Invoke(heartbeat);
-                OnHeartbeat?.Invoke();
-            }
+            HeartbeatPacket heartbeatPacket = new HeartbeatPacket().Deserialize(data);
+            byte heartbeat = heartbeatPacket.heartbeat;
+            
+            OnHeartbeatReceived?.Invoke(heartbeat);
+            OnHeartbeat?.Invoke();
         }
 
         private void ProcessJoiningLobby(byte[] data)
         {
-            byte lobby = data[0];
-
-            if (data != null)
-            {
-                LobbyPacket lobbyPacket = new LobbyPacket().Deserialize(data);
-                OnJoiningLobby?.Invoke(data);
-            }
+            LobbyPacket lobbyPacket = new LobbyPacket().Deserialize(data);
+            OnJoiningLobby?.Invoke(data);
         }
+        
         private void ProcessRestartPacket(byte[] data)
         {
-
-            byte reset = data[0];
-            bool isReset = reset != 0;
-
-            if (data != null)
-            {
-                RestartPacket restartPacket = new RestartPacket().Deserialize(data);
-                OnRestart?.Invoke(reset);
-            }
+            RestartPacket restartPacket = new RestartPacket().Deserialize(data);
+            OnRestart?.Invoke(restartPacket.isReset ? (byte)1 : (byte)0);
         }
 
         private void ProcessPushEventPacket(byte[] data)
         {
-            if (data == null || data.Length == 0)
+            PushEventPacket pushPacket = new PushEventPacket().Deserialize(data);
+            
+            if (pushPacket == null || pushPacket.playerData == null)
             {
-                //Debug.LogError("PacketHandler.cs: Null data in ProcessPushEventPacket");
+                Debug.LogError("PacketHandler.cs: Invalid push packet");
                 return;
             }
 
-            try
-            {
-                PushEventPacket pushPacket = new PushEventPacket();
-                pushPacket = pushPacket.Deserialize(data);
+            Vector3 force = new Vector3(pushPacket.ForceX, pushPacket.ForceY, pushPacket.ForceZ);
+            Debug.Log($"PacketHandler.cs: Processing push packet. Target: {pushPacket.TargetPlayerTag}, Force: {force}");
 
-                if (pushPacket == null)
-                {
-                    //Debug.LogError("PacketHandler.cs: Failed to deserialize push packet");
-                    return;
-                }
-
-                if (pushPacket.playerData == null)
-                {
-                    //Debug.LogError("PacketHandler.cs: Push packet has null player data");
-                    return;
-                }
-
-                Vector3 force = new Vector3(pushPacket.ForceX, pushPacket.ForceY, pushPacket.ForceZ);
-                Debug.Log($"PacketHandler.cs: Successfully processed push packet. Target: {pushPacket.TargetPlayerTag}, Force: {force}");
-
-                if (OnPushEventReceived != null)
-                {
-                    OnPushEventReceived.Invoke(pushPacket.TargetPlayerTag, force, pushPacket.EffectName ?? string.Empty);
-                }
-                else
-                {
-                    //Debug.LogWarning("PacketHandler.cs: No listeners for OnPushEventReceived event");
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"PacketHandler.cs: Error in ProcessPushEventPacket: {e.Message}\n{e.StackTrace}");
-            }
+            OnPushEventReceived?.Invoke(pushPacket.TargetPlayerTag, force, pushPacket.EffectName ?? string.Empty);
         }
-
+        
+        private void ProcessReadyInLobbyPacket(byte[] data)
+        {
+            ReadyInLobbyPacket readyPacket = new ReadyInLobbyPacket().Deserialize(data);
+            OnPlayerReadyStateChanged?.Invoke(readyPacket.playerData, readyPacket.isPlayerReady);
+            Debug.Log($"PacketHandler.cs: Player {readyPacket.playerData.name} (tag: {readyPacket.playerData.tag}) ready state: {readyPacket.isPlayerReady}");
+        }
 
         public byte[] CreatePushEventPacket(int targetPlayerTag, Vector3 force, string effectName)
         {
@@ -264,17 +234,12 @@ namespace Leonardo.Scripts.Networking
             return pingPacket.Serialize();
         }
 
-        //Hamad: Creating function for heartbeat
-
         public byte[] CreateHeartbeatPacket(byte playerHeartbeat)
         {
             HeartbeatPacket heartbeatPacket = new HeartbeatPacket(_localPlayerData, playerHeartbeat);
             return heartbeatPacket.Serialize();
-
         }
         
-        //Dyson: Create function for lobby
-
         public byte[] CreateLobbyPacket()
         {
             LobbyPacket lobbyPacket = new LobbyPacket(_localPlayerData);
@@ -285,21 +250,26 @@ namespace Leonardo.Scripts.Networking
         {
             RestartPacket restartPacket = new RestartPacket(_localPlayerData, reset);
             return restartPacket.Serialize();
-
         }
         
-        private void ProcessReadyInLobbyPacket(byte[] data)
-        {
-            ReadyInLobbyPacket readyPacket = new ReadyInLobbyPacket().Deserialize(data);
-            OnPlayerReadyStateChanged?.Invoke(readyPacket.playerData, readyPacket.isPlayerReady);
-            Debug.Log($"Player {readyPacket.playerData.name} ready state: {readyPacket.isPlayerReady}");
-        }
-
         public byte[] CreateReadyInLobbyPacket(bool isReady)
         {
             ReadyInLobbyPacket readyPacket = new ReadyInLobbyPacket(_localPlayerData, isReady);
             return readyPacket.Serialize();
         }
 
+        public PlayerData GetLocalPlayerData()
+        {
+            return _localPlayerData;
+        }
+        
+        public PlayerData GetPlayerDataByTag(int tag)
+        {
+            if (_knownPlayers.ContainsKey(tag))
+            {
+                return _knownPlayers[tag];
+            }
+            return null;
+        }
     }
 }
