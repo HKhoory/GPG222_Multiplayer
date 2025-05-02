@@ -1361,7 +1361,6 @@ MonoBehaviour:
   minPlayersToStart: 2
   initialJoinDelay: 0.5
   lobbyTimeout: 300
-  localPlayerState: {fileID: 652647979}
   playersContainer: {fileID: 307544516}
   playerCardPrefab: {fileID: 9149958383428980565, guid: 8da4c68a1b2774348a4eecea57e1c14e, type: 3}
   statusText: {fileID: 901370011}
@@ -1397,7 +1396,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ClientId: 0
-  Buffer: 
+  Buffer: []
   isReady: 0
 --- !u!4 &652647980
 Transform:
@@ -3457,37 +3456,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1911499661}
   m_CullTransparentMesh: 1
---- !u!1 &1911981121
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1911981123}
-  m_Layer: 0
-  m_Name: ClientState
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1911981123
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1911981121}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1948042166
 GameObject:
   m_ObjectHideFlags: 0
@@ -3825,7 +3793,6 @@ MonoBehaviour:
   disabledColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   transitionSpeed: 3
   useColorTransition: 1
-  playerClientState: {fileID: 0}
   buttonText: {fileID: 0}
   statusText: {fileID: 0}
   buttonImage: {fileID: 0}
@@ -4005,7 +3972,6 @@ SceneRoots:
   - {fileID: 1212610413}
   - {fileID: 360560567}
   - {fileID: 234615609}
-  - {fileID: 1911981123}
   - {fileID: 1577052030}
   - {fileID: 1848754178}
   - {fileID: 623379793}

@@ -134,7 +134,7 @@ namespace Dyson.Scripts.Lobby
             _lobby = FindObjectOfType<Lobby>();
             if (_lobby != null)
             {
-                playerClientState = _lobby.LocalPlayerClientState;
+                playerClientState = _lobby.LocalPlayerState;
                 LogInfo("Found lobby and local player client state");
             }
             else

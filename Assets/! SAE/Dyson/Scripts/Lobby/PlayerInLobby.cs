@@ -1,3 +1,4 @@
+using __SAE.Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.ClientRelated;
 using TMPro;
 using UnityEngine;
@@ -30,8 +31,8 @@ namespace Dyson.Scripts.Lobby
             _clientState = clientState;
             
             // Check if this is the local player.
-            if (_lobby != null && _lobby.LocalPlayerClientState != null && 
-                _clientState.ClientId == _lobby.LocalPlayerClientState.ClientId)
+            if (_lobby != null && _lobby.LocalPlayerState != null && 
+                _clientState.ClientId == _lobby.LocalPlayerState.ClientId)
             {
                 _isLocalPlayer = true;
                 LogInfo($"Set up as local player with ID {_clientState.ClientId}");
