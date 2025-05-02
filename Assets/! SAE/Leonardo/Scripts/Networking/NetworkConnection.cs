@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Leonardo.Scripts.Networking
 {
-    public class NetworkConnection
+    public class NetworkConnection : MonoBehaviour
     {
         private Socket _socket;
         private readonly string ipAddress;
