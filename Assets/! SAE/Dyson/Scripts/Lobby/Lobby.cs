@@ -222,7 +222,7 @@ namespace Dyson.Scripts.Lobby
                 // Host sets up their own player first.
                 LogInfo("Host is setting up player with ID 1");
                 localPlayerState.ClientId = 1;
-                //AddPlayerToLobby(localPlayerState);
+                AddPlayerToLobby(localPlayerState);
 
                 SetLobbyState(LobbyState.Waiting);
                 UpdateStatusText("Hosting lobby - Waiting for players...");
@@ -312,7 +312,11 @@ namespace Dyson.Scripts.Lobby
             LogInfo($"Player {playerName} joined the lobby");
 
             if (isHost) {
-                // Find if player already exists.
+                if (playerName == networkClient.LocalPlayer.name) {
+                    LogInfo($"This is the host joining, not creating duplicate entry");
+                    return;
+                }
+                
                 bool foundExisting = false;
                 foreach (var state in allPlayerStates.Values) {
                     if (state.name == playerName) {
@@ -454,7 +458,9 @@ namespace Dyson.Scripts.Lobby
         /// <param name="playerState">The player state to add.</param>
         public void AddPlayerToLobby(ClientState playerState) {
             if (allPlayerStates.ContainsKey(playerState.ClientId)) {
-                LogWarning($"Player with ID {playerState.ClientId} already exists!");
+                LogWarning($"Player with ID {playerState.ClientId} already exists! Updating instead of adding new.");
+                allPlayerStates[playerState.ClientId] = playerState;
+                UpdatePlayerReadyUI(playerState.ClientId);
                 return;
             }
 
@@ -477,8 +483,9 @@ namespace Dyson.Scripts.Lobby
                 LogWarning("Cannot create player card: playersContainer or playerCardPrefab is null");
             }
 
-            // Update the status text
+            // Update the status text.
             UpdateStatusText($"In Lobby - {allPlayerStates.Count} players");
+            Debug.Log("Added player to lobby");
         }
 
         /// <summary>
