@@ -213,7 +213,7 @@ namespace Dyson.Scripts.Lobby
                 // Host sets up their own player first.
                 LogInfo("Host is setting up player with ID 1");
                 localPlayerState.ClientId = 1;
-                AddPlayerToLobby(localPlayerState);
+                //AddPlayerToLobby(localPlayerState);
 
                 SetLobbyState(LobbyState.Waiting);
                 UpdateStatusText("Hosting lobby - Waiting for players...");
