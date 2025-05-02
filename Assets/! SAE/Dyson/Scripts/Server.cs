@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using UnityEngine;
 using Dyson.GPG222.Lobby;
 using Dyson.Scripts.Lobby;
@@ -21,6 +20,7 @@ namespace Dyson_GPG222_Server
     /// <summary>
     /// Server component that manages client connections, packet processing,
     /// and broadcasting messages between clients.
+    /// Uses a non-asynchronous approach with polling similar to the client.
     /// </summary>
     public class Server : MonoBehaviour
     {
@@ -48,16 +48,13 @@ namespace Dyson_GPG222_Server
         private float nextStatusUpdateTime = 0f;
         private int totalPacketsReceived = 0;
         private int totalPacketsSent = 0;
-        private System.Threading.Thread serverThread;
         private bool shutdownRequested = false;
         private object clientsLock = new object();
         
-        // Components
         private NetworkConnection networkConnection;
         private Lobby lobby;
         private JoinLobby joinLobby;
         
-        // Server state
         public enum ServerState
         {
             Stopped,
@@ -82,7 +79,6 @@ namespace Dyson_GPG222_Server
         #region Unity Lifecycle Methods
         private void Awake() 
         {
-            // This will be enabled only if a player is hosting.
             enabled = false;
             instance = this;
             LogInfo("Server component initialized");
@@ -90,7 +86,6 @@ namespace Dyson_GPG222_Server
         
         private void Start()
         {
-            // Find required components
             networkConnection = GetComponent<NetworkConnection>();
             lobby = FindObjectOfType<Lobby>();
             joinLobby = FindObjectOfType<JoinLobby>();
@@ -102,10 +97,12 @@ namespace Dyson_GPG222_Server
         {
             if (!isServerRunning) return;
             
-            // Check for client timeouts
+            CheckForNewConnections();
+            
+            PollClientsForData();
+            
             CheckClientTimeouts();
             
-            // Log status updates at regular intervals
             if (Time.time >= nextStatusUpdateTime)
             {
                 nextStatusUpdateTime = Time.time + statusUpdateInterval;
@@ -148,10 +145,6 @@ namespace Dyson_GPG222_Server
                 isServerRunning = true;
                 SetServerState(ServerState.Running);
                 
-                // Start accepting clients
-                tcpListener.BeginAcceptTcpClient(TCPConnectCallback, null);
-                
-                // Initialize server data
                 InitializeServerData();
                 
                 LogInfo($"Server started successfully on port {Port}");
@@ -178,7 +171,6 @@ namespace Dyson_GPG222_Server
             
             try
             {
-                // Close all client connections
                 lock (clientsLock)
                 {
                     foreach (var client in clients.Values)
@@ -202,7 +194,6 @@ namespace Dyson_GPG222_Server
                     clientLastActivity.Clear();
                 }
                 
-                // Stop the listener
                 if (tcpListener != null)
                 {
                     tcpListener.Stop();
@@ -252,7 +243,6 @@ namespace Dyson_GPG222_Server
             LogInfo($"Server state changing from {currentState} to {newState}");
             currentState = newState;
             
-            // Additional state-specific logic can be added here
         }
         
         /// <summary>
@@ -269,90 +259,141 @@ namespace Dyson_GPG222_Server
 
         #region Client Management Methods
         /// <summary>
-        /// Callback for new TCP client connections.
+        /// Checks for new client connections.
         /// </summary>
-        /// <param name="result">The async result.</param>
-        private void TCPConnectCallback(IAsyncResult result)
+        private void CheckForNewConnections()
         {
             try
             {
-                // Get the new client
-                TcpClient client = tcpListener.EndAcceptTcpClient(result);
-                
-                // Continue accepting new clients
-                tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
-                
-                // Handle the new client
-                string endpoint = client.Client.RemoteEndPoint.ToString();
-                LogInfo($"New connection from {endpoint}");
-                
-                // Check if server is full
-                if (IsServerFull)
+                if (tcpListener.Pending())
                 {
-                    LogWarning($"Server full. Rejecting connection from {endpoint}");
-                    client.Close();
-                    return;
-                }
-                
-                // Check if this client is already connected
-                bool alreadyConnected = false;
-                int existingClientId = -1;
-                
-                lock (clientsLock)
-                {
-                    foreach (var existingClient in clients)
+                    TcpClient client = tcpListener.AcceptTcpClient();
+                    
+                    string endpoint = client.Client.RemoteEndPoint.ToString();
+                    LogInfo($"New connection from {endpoint}");
+                    
+                    if (IsServerFull)
                     {
-                        if (existingClient.Value.Socket != null &&
-                            existingClient.Value.Socket.Client.RemoteEndPoint.ToString() == endpoint)
+                        LogWarning($"Server full. Rejecting connection from {endpoint}");
+                        client.Close();
+                        return;
+                    }
+                    
+                    bool alreadyConnected = false;
+                    int existingClientId = -1;
+                    
+                    lock (clientsLock)
+                    {
+                        foreach (var existingClient in clients)
                         {
-                            alreadyConnected = true;
-                            existingClientId = existingClient.Key;
-                            break;
+                            if (existingClient.Value.Socket != null &&
+                                existingClient.Value.Socket.Client.RemoteEndPoint.ToString() == endpoint)
+                            {
+                                alreadyConnected = true;
+                                existingClientId = existingClient.Key;
+                                break;
+                            }
                         }
                     }
-                }
-                
-                if (alreadyConnected)
-                {
-                    LogWarning($"Client from {endpoint} is already connected with ID: {existingClientId}");
-                    client.Close();
-                    return;
-                }
-                
-                // Find an empty slot for the client
-                int clientId = AssignClientId();
-                if (clientId == -1)
-                {
-                    LogWarning($"Could not assign client ID for {endpoint}. Server might be full.");
-                    client.Close();
-                    return;
-                }
-                
-                // Create a new ClientHandler for this connection
-                ClientHandler clientHandler = new ClientHandler(clientId, client);
-                
-                lock (clientsLock)
-                {
-                    clients[clientId] = clientHandler;
-                    clientLastActivity[clientId] = Time.time;
-                }
-                
-                LogInfo($"Assigned client {endpoint} to slot {clientId}. Total clients: {clients.Count}");
-                
-                // Set up data handling for this client
-                HandleClient(client, clientId);
-            }
-            catch (ObjectDisposedException)
-            {
-                // This happens when the server is shutting down
-                if (!shutdownRequested)
-                {
-                    LogWarning("TCP listener was disposed unexpectedly");
+                    
+                    if (alreadyConnected)
+                    {
+                        LogWarning($"Client from {endpoint} is already connected with ID: {existingClientId}");
+                        client.Close();
+                        return;
+                    }
+                    
+                    int clientId = AssignClientId();
+                    if (clientId == -1)
+                    {
+                        LogWarning($"Could not assign client ID for {endpoint}. Server might be full.");
+                        client.Close();
+                        return;
+                    }
+                    
+                    client.NoDelay = true;
+                    client.ReceiveBufferSize = 4096;
+                    client.SendBufferSize = 4096;
+
+                    ClientHandler clientHandler = new ClientHandler(clientId, client);
+                    
+                    lock (clientsLock)
+                    {
+                        clients[clientId] = clientHandler;
+                        clientLastActivity[clientId] = Time.time;
+                    }
+                    
+                    LogInfo($"Assigned client {endpoint} to slot {clientId}. Total clients: {clients.Count}");
                 }
             }
             catch (Exception e)
             {
+                if (shutdownRequested)
+                {
+                    return;
+                }
+                
                 LogError($"Error accepting client connection: {e.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Polls all clients for incoming data.
+        /// </summary>
+        private void PollClientsForData()
+        {
+            List<int> clientsToDisconnect = new List<int>();
+            
+            lock (clientsLock)
+            {
+                foreach (var clientPair in clients)
+                {
+                    int clientId = clientPair.Key;
+                    ClientHandler client = clientPair.Value;
+                    
+                    if (client == null || client.Socket == null || !client.Socket.Connected)
+                    {
+                        clientsToDisconnect.Add(clientId);
+                        continue;
+                    }
+                    
+                    try
+                    {
+                        NetworkStream stream = client.Socket.GetStream();
+                        
+                        if (client.Socket.Available > 0)
+                        {
+                            byte[] data = new byte[client.Socket.Available];
+                            int bytesRead = stream.Read(data, 0, data.Length);
+                            
+                            if (bytesRead > 0)
+                            {
+                                clientLastActivity[clientId] = Time.time;
+                                
+                                byte[] receivedData = new byte[bytesRead];
+                                Array.Copy(data, receivedData, bytesRead);
+                                
+                                totalPacketsReceived++;
+                                
+                                ProcessReceivedData(receivedData, clientId);
+                            }
+                            else
+                            {
+                                clientsToDisconnect.Add(clientId);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        LogError($"Error reading from client {clientId}: {e.Message}");
+                        clientsToDisconnect.Add(clientId);
+                    }
+                }
+            }
+            
+            foreach (int clientId in clientsToDisconnect)
+            {
+                DisconnectClient(clientId);
             }
         }
         
@@ -374,88 +415,6 @@ namespace Dyson_GPG222_Server
             }
             
             return -1; // No slots available
-        }
-        
-        /// <summary>
-        /// Sets up data handling for a client.
-        /// </summary>
-        /// <param name="client">The client's TCP connection.</param>
-        /// <param name="clientId">The assigned client ID.</param>
-        private void HandleClient(TcpClient client, int clientId)
-        {
-            NetworkStream stream = client.GetStream();
-            byte[] buffer = new byte[4096];
-            
-            try
-            {
-                // Begin reading.
-                stream.BeginRead(buffer, 0, buffer.Length, ReceiveCallback,
-                    new ClientState
-                    {
-                        Client = client,
-                        ClientId = clientId,
-                        Buffer = buffer
-                    });
-            }
-            catch (Exception e)
-            {
-                LogError($"Error setting up client handler: {e.Message}");
-                DisconnectClient(clientId);
-            }
-        }
-        
-        /// <summary>
-        /// Callback for receiving data from clients.
-        /// </summary>
-        /// <param name="ar">The async result.</param>
-        private void ReceiveCallback(IAsyncResult ar)
-        {
-            ClientState state = (ClientState)ar.AsyncState;
-            int clientId = state.ClientId;
-            
-            try
-            {
-                NetworkStream stream = state.Client.GetStream();
-                int bytesRead = stream.EndRead(ar);
-                
-                // Update last activity time
-                lock (clientsLock)
-                {
-                    if (clientLastActivity.ContainsKey(clientId))
-                    {
-                        clientLastActivity[clientId] = Time.time;
-                    }
-                }
-                
-                if (bytesRead <= 0)
-                {
-                    // The client disconnected.
-                    LogInfo($"Client {clientId} disconnected");
-                    DisconnectClient(clientId);
-                    return;
-                }
-                
-                // Process the received data
-                byte[] data = new byte[bytesRead];
-                Array.Copy(state.Buffer, data, bytesRead);
-                
-                // Increment packet count
-                totalPacketsReceived++;
-                
-                // Process the received data
-                ProcessReceivedData(data, clientId);
-                
-                // Continue reading
-                if (state.Client.Connected)
-                {
-                    stream.BeginRead(state.Buffer, 0, state.Buffer.Length, ReceiveCallback, state);
-                }
-            }
-            catch (Exception e)
-            {
-                LogError($"Error reading data from client {clientId}: {e.Message}");
-                DisconnectClient(clientId);
-            }
         }
         
         /// <summary>
@@ -524,7 +483,6 @@ namespace Dyson_GPG222_Server
                 }
             }
             
-            // Disconnect timed out clients
             foreach (int clientId in timeoutClients)
             {
                 LogWarning($"Client {clientId} timed out");
@@ -613,21 +571,17 @@ namespace Dyson_GPG222_Server
                 MessagePacket messagePacket = new MessagePacket().Deserialize(data);
                 LogInfo($"Received message from {messagePacket.playerData.name}: {messagePacket.Message}");
                 
-                // Store player data if not already stored
                 if (!connectedPlayers.ContainsKey(clientId))
                 {
                     connectedPlayers[clientId] = messagePacket.playerData;
                     LogInfo($"Stored player data for client {clientId}: {messagePacket.playerData.name}");
                 }
                 
-                // Special handling for initial connection message
                 if (messagePacket.Message == "Connected, hi!" && connectedPlayers.ContainsKey(clientId))
                 {
-                    // Send information about all existing players to this new client
                     SendAllPlayersInfo(clientId);
                 }
                 
-                // Broadcast message to all clients
                 Broadcast(messagePacket.packetType, data, clientId);
             }
             catch (Exception e)
@@ -652,13 +606,11 @@ namespace Dyson_GPG222_Server
                     LogInfo($"Received position updates for {positionPacket.PlayerPositionData.Count} players from client {clientId}");
                 }
                 
-                // Update player data if position data is available
                 if (positionPacket.PlayerPositionData.Count > 0 && positionPacket.PlayerPositionData[0].playerData != null)
                 {
                     connectedPlayers[clientId] = positionPacket.PlayerPositionData[0].playerData;
                 }
                 
-                // Broadcast to all other clients
                 Broadcast(positionPacket.packetType, data, clientId);
             }
             catch (Exception e)
@@ -683,7 +635,6 @@ namespace Dyson_GPG222_Server
                     LogInfo($"Received rotation updates for {rotationPacket.PlayerRotationData.Count} players from client {clientId}");
                 }
                 
-                // Broadcast to all other clients
                 Broadcast(rotationPacket.packetType, data, clientId);
             }
             catch (Exception e)
@@ -708,17 +659,14 @@ namespace Dyson_GPG222_Server
                     LogInfo($"Received ping from client {clientId} ({pingPacket.playerData.name})");
                 }
                 
-                // Store player data from ping packets too
                 if (!connectedPlayers.ContainsKey(clientId))
                 {
                     connectedPlayers[clientId] = pingPacket.playerData;
                 }
                 
-                // Send ping response back to the client
                 PingResponsePacket responsePacket = new PingResponsePacket(pingPacket.playerData, pingPacket.Timestamp);
                 byte[] responseData = responsePacket.Serialize();
                 
-                // Send directly back to the one who sent it only
                 SendToClient(clientId, responseData);
             }
             catch (Exception e)
@@ -740,13 +688,11 @@ namespace Dyson_GPG222_Server
                 
                 LogInfo($"Received push event from client {clientId}, targeting player with tag {pushPacket.TargetPlayerTag}");
                 
-                // Update player data if not already stored
                 if (!connectedPlayers.ContainsKey(clientId))
                 {
                     connectedPlayers[clientId] = pushPacket.playerData;
                 }
                 
-                // Broadcast to all clients
                 Broadcast(pushPacket.packetType, data, clientId);
             }
             catch (Exception e)
@@ -768,15 +714,12 @@ namespace Dyson_GPG222_Server
                 
                 LogInfo($"Client {clientId} ({lobbyPacket.playerData.name}) is joining the lobby");
                 
-                // Store player data
                 connectedPlayers[clientId] = lobbyPacket.playerData;
                 
-                // Create a specific message packet for joining the lobby
                 MessagePacket joinMessage = new MessagePacket(lobbyPacket.playerData, "JOIN_LOBBY");
                 byte[] joinData = joinMessage.Serialize();
                 
-                // Broadcast to all connected clients
-                Broadcast(Packet.PacketType.Message, joinData, -1); // -1 means broadcast to all
+                Broadcast(Packet.PacketType.Message, joinData, -1);
             }
             catch (Exception e)
             {
@@ -797,13 +740,11 @@ namespace Dyson_GPG222_Server
                 
                 LogInfo($"Client {clientId} ({readyPacket.playerData.name}) ready state: {readyPacket.isPlayerReady}");
                 
-                // Store player data if not already stored
                 if (!connectedPlayers.ContainsKey(clientId))
                 {
                     connectedPlayers[clientId] = readyPacket.playerData;
                 }
                 
-                // Broadcast to all clients
                 Broadcast(readyPacket.packetType, data, -1);
             }
             catch (Exception e)
@@ -820,7 +761,6 @@ namespace Dyson_GPG222_Server
         /// <param name="newClientId">The client ID to send the information to.</param>
         private void SendAllPlayersInfo(int newClientId)
         {
-            // Don't send anything if this is the first client
             if (connectedPlayers.Count <= 1)
             {
                 LogInfo($"No other players to send info about to new client {newClientId}");
@@ -832,13 +772,11 @@ namespace Dyson_GPG222_Server
             
             foreach (var player in connectedPlayers)
             {
-                // Skip the new client itself
                 if (player.Key == newClientId)
                 {
                     continue;
                 }
                 
-                // Create a default position that will be updated later by the client
                 PlayerPositionData playerPositionData = new PlayerPositionData(
                     player.Value, 0, 1, 0);
                 
@@ -847,13 +785,11 @@ namespace Dyson_GPG222_Server
             
             if (allPlayersPosition.Count > 0 && connectedPlayers.ContainsKey(newClientId))
             {
-                // Create a packet with the information of all the positions of the players
                 PlayersPositionDataPacket positionDataPacket =
                     new PlayersPositionDataPacket(connectedPlayers[newClientId], allPlayersPosition);
                 
                 byte[] data = positionDataPacket.Serialize();
                 
-                // Send to the new client
                 SendToClient(newClientId, data);
             }
         }
@@ -875,7 +811,7 @@ namespace Dyson_GPG222_Server
             {
                 foreach (var client in clients)
                 {
-                    // Skip sender unless senderId is -1 (broadcast to all)
+                    // Skip sender unless senderId is -1 (broadcast to all).
                     if (senderId != -1 && client.Key == senderId) continue;
                     
                     try
@@ -889,7 +825,6 @@ namespace Dyson_GPG222_Server
                 }
             }
             
-            // Increment packet count
             totalPacketsSent += clients.Count - (senderId == -1 ? 0 : 1);
         }
         
@@ -919,7 +854,6 @@ namespace Dyson_GPG222_Server
                     NetworkStream stream = client.Socket.GetStream();
                     stream.Write(data, 0, data.Length);
                     
-                    // Increment packet count
                     totalPacketsSent++;
                     
                     if (logPacketData)
