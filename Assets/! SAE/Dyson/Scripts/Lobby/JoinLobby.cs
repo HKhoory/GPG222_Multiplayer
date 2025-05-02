@@ -1,10 +1,10 @@
+using __SAE.Leonardo.Scripts.ClientRelated;
+using Dyson_GPG222_Server;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using Dyson_GPG222_Server;
-using Leonardo.Scripts.ClientRelated;
 
-namespace Dyson.GPG222.Lobby
+namespace __SAE.Dyson.Scripts.Lobby
 {
     public class JoinLobby : MonoBehaviour
     {
@@ -15,6 +15,10 @@ namespace Dyson.GPG222.Lobby
         [SerializeField] private Button hostButton;
         [SerializeField] private Button joinButton;
         [SerializeField] private TextMeshProUGUI statusText;
+        
+        [Header("- Network Settings")]
+        private bool isHost = false;
+        private string serverIp = "127.0.0.1";
         
         [Header("- Debug Settings")]
         [SerializeField] private bool verboseLogging = false;
@@ -53,11 +57,11 @@ namespace Dyson.GPG222.Lobby
         {
             UpdateStatus("Starting server...");
             
-            // Save host status and IP.
-            PlayerPrefs.SetInt("IsHost", 1);
-            PlayerPrefs.SetString("ServerIP", "127.0.0.1");
-            PlayerPrefs.Save();
+            // Set instance variables instead of PlayerPrefs
+            isHost = true;
+            serverIp = "127.0.0.1";
             
+            // Instead of PlayerPrefs, we'll pass these values directly to NetworkClient.
             LogInfo("Player set as host, server IP: 127.0.0.1");
     
             // Start the server.
@@ -77,6 +81,7 @@ namespace Dyson.GPG222.Lobby
             // Connect to the server as a client.
             if (_networkClient != null)
             {
+                _networkClient.SetHostStatus(isHost, serverIp);
                 _networkClient.InitiateConnection();
                 LogInfo("Initiated client connection");
             }
@@ -97,26 +102,20 @@ namespace Dyson.GPG222.Lobby
         {
             UpdateStatus("Connecting to server...");
             
-            // Save client status.
-            PlayerPrefs.SetInt("IsHost", 0);
+            isHost = false;
             
-            // Get IP address from input field.
-            string ip = "127.0.0.1";
             if (ipAddressInput != null)
             {
-                ip = ipAddressInput.text;
-                if (string.IsNullOrEmpty(ip))
-                    ip = "127.0.0.1";
+                serverIp = ipAddressInput.text;
+                if (string.IsNullOrEmpty(serverIp))
+                    serverIp = "127.0.0.1";
             }
             
-            PlayerPrefs.SetString("ServerIP", ip);
-            PlayerPrefs.Save();
-            
-            LogInfo($"Player set as client, server IP: {ip}");
+            LogInfo($"Player set as client, server IP: {serverIp}");
     
-            // Connect to the server.
             if (_networkClient != null)
             {
+                _networkClient.SetHostStatus(isHost, serverIp);
                 _networkClient.InitiateConnection();
                 LogInfo("Initiated client connection");
             }
@@ -156,5 +155,11 @@ namespace Dyson.GPG222.Lobby
             Debug.LogError($"[JoinLobby] ERROR: {message}");
         }
         #endregion
+
+        private void OnGUI()
+        {
+            GUI.Label(new Rect(10, 10, 200, 30), isHost ? "MODE: HOST" : "MODE: CLIENT");
+            GUI.Label(new Rect(10, 40, 200, 30), $"Server IP: {serverIp}");
+        }
     }
 }
