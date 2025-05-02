@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using __SAE.Dyson.Scripts.Lobby;
 using __SAE.Leonardo.Scripts.ClientRelated;
 using Hamad.Scripts;
 using Leonardo.Scripts.ClientRelated;
@@ -8,6 +9,7 @@ using Leonardo.Scripts.Networking;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Dyson.Scripts.Lobby
 {
@@ -21,7 +23,6 @@ namespace Dyson.Scripts.Lobby
 
         [Header("- Lobby Configuration")]
         [SerializeField] private string gameSceneName = "Gameplay";
-
         [SerializeField] private int minPlayersToStart = 2;
         [SerializeField] private float initialJoinDelay = 0.5f;
         [SerializeField] private float lobbyTimeout = 300f;
@@ -31,10 +32,15 @@ namespace Dyson.Scripts.Lobby
 
         [Header("- UI References")]
         [SerializeField] private Transform playersContainer;
-
         [SerializeField] private GameObject playerCardPrefab;
         [SerializeField] private TextMeshProUGUI statusText;
         [SerializeField] private TextMeshProUGUI timeoutText;
+        
+        [Header("- UI Styling")]
+        [SerializeField] private Color localPlayerBackgroundColor = new Color(0.2f, 0.6f, 0.2f);
+        [SerializeField] private Color hostPlayerBackgroundColor = new Color(0.6f, 0.4f, 0.2f);
+        [SerializeField] private Color regularPlayerBackgroundColor = new Color(0.2f, 0.2f, 0.2f);
+        [SerializeField] private Image backgroundPanel;
 
         [Header("- Debug Settings")]
         [SerializeField] private bool verboseLogging = false;
@@ -162,22 +168,17 @@ namespace Dyson.Scripts.Lobby
             }
         }
 
-        private void RegisterEventHandlers()
-        {
-            if (networkClient != null)
-            {
+        private void RegisterEventHandlers() {
+            if (networkClient != null) {
                 StartCoroutine(WaitForPacketHandlerAndRegister());
             }
-            else
-            {
+            else {
                 LogError("NetworkClient is still null during event registration!");
             }
         }
 
-        private IEnumerator WaitForPacketHandlerAndRegister()
-        {
-            while (networkClient.GetPacketHandler() == null)
-            {
+        private IEnumerator WaitForPacketHandlerAndRegister() {
+            while (networkClient.GetPacketHandler() == null) {
                 LogInfo("Waiting for NetworkClient's PacketHandler to be ready...");
                 yield return null;
             }
@@ -188,13 +189,10 @@ namespace Dyson.Scripts.Lobby
             packetHandler.OnMessageReceived += HandleLobbyMessage;
         }
 
-        private void UnregisterEventHandlers()
-        {
-            if (networkClient != null)
-            {
+        private void UnregisterEventHandlers() {
+            if (networkClient != null) {
                 PacketHandler packetHandler = networkClient.GetPacketHandler();
-                if (packetHandler != null) 
-                {
+                if (packetHandler != null) {
                     packetHandler.OnPlayerReadyStateChanged -= HandlePlayerReadyState;
                     packetHandler.OnMessageReceived -= HandleLobbyMessage;
                 }
@@ -304,7 +302,7 @@ namespace Dyson.Scripts.Lobby
 
                     LogInfo($"Added new player {playerName} with ID {newPlayerState.ClientId}");
 
-                    // Broadcast updated lobby state.
+                    // ! Broadcast updated lobby state to ALL clients.
                     BroadcastLobbyState();
                 }
             }
@@ -318,7 +316,7 @@ namespace Dyson.Scripts.Lobby
 
             string stateMessage = "LOBBY_STATE:";
             foreach (var player in allPlayerStates) {
-                // ! Format: ClientID:isReady:playerName,
+                // Format: ClientID:isReady:playerName,
                 stateMessage += $"{player.Key}:{player.Value.isReady}:{player.Value.name},";
             }
 

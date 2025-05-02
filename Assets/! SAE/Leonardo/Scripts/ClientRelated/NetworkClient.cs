@@ -53,6 +53,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         private int _reconnectAttempts = 0;
         private bool _hasInitializedConnection = false;
         private bool _isReconnecting = false;
+        private string _playerName = null;
         private bool _isHost;
         private Coroutine _connectionTimeoutCoroutine;
 
@@ -139,6 +140,16 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         #region Public Methods
 
         /// <summary>
+        /// Read
+        /// </summary>
+        /// <param name="name">The player's name.</param>
+        public void SetPlayerName(string name) {
+            _playerName = name;
+            LogInfo($"Player name set to: {name}");
+        }
+
+
+        /// <summary>
         /// Sets the status of the client as host or client.
         /// </summary>
         /// <param name="isHost">True if host, false if client.</param>
@@ -170,9 +181,11 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             _connectionState = ConnectionState.Connecting;
             _reconnectAttempts = 0;
 
-            // Generate unique player name.
-            string playerName = $"{playerNamePrefix}{Random.Range(1000, 9999)}";
-            LogInfo($"Initiating connection as {playerName} to {ipAddress}:{port}");
+            // Handle player name.
+            string playerName = _playerName;
+            if (string.IsNullOrEmpty(playerName)) {
+                playerName = $"{playerNamePrefix}{Random.Range(1000, 9999)}";
+            }
 
             ConnectToServer(playerName);
 
