@@ -73,6 +73,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
 
         #region Public Properties
 
+        public bool IsHost => _isHost;
         public PlayerData LocalPlayer { get; private set; }
         public bool IsConnected => _networkConnection?.IsConnected ?? false;
         public ConnectionState State => _connectionState;

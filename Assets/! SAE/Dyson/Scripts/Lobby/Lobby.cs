@@ -138,7 +138,6 @@ namespace Dyson.Scripts.Lobby
         /// Initializes fields and references.
         /// </summary>
         private void InitializeFields() {
-            isHost = PlayerPrefs.GetInt("IsHost", 0) == 1;
             
             localPlayerState = new ClientState(); 
 
@@ -210,13 +209,21 @@ namespace Dyson.Scripts.Lobby
             if (networkClient?.LocalPlayer != null) {
                 localPlayerState.name = networkClient.LocalPlayer.name; 
                 localPlayerState.ClientId = networkClient.LocalPlayer.tag; 
-                LogInfo($"Updated localPlayerState before join. Name: {localPlayerState.name}, Initial ID: {localPlayerState.ClientId}");
+                
+                isHost = (localPlayerState.ClientId == 1);
+                if (networkClient.IsHost) {
+                    isHost = true;
+                    localPlayerState.ClientId = 1;
+                } else {
+                    isHost = false;
+                }
+                LogError($"[Lobby] Determined host status in DelayedJoinLobby: {isHost} (Based on NetworkClient/ID Check)"); 
             } else {
-                 LogError("Cannot assign local player details in DelayedJoinLobby - NetworkClient or LocalPlayer is null.");
-                 SetLobbyState(LobbyState.Error); 
-                 errorMessage = "Failed to initialize local player data.";
-                 UpdateStatusText();
-                 return;
+                LogError("Cannot assign local player details or determine host status in DelayedJoinLobby - NetworkClient or LocalPlayer is null.");
+                SetLobbyState(LobbyState.Error); 
+                errorMessage = "Failed to initialize local player data.";
+                UpdateStatusText();
+                return;
             }
 
 
@@ -815,6 +822,7 @@ namespace Dyson.Scripts.Lobby
         /// </summary>
         /// <param name="message">The message to log.</param>
         private void LogError(string message) {
+            if (false) // Im deactivating this on purpose.
             Debug.LogError($"[Lobby] ERROR: {message}");
         }
 

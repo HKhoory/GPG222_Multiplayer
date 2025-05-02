@@ -185,6 +185,20 @@ namespace Leonardo.Scripts.Networking
 
                         break;
 
+                    case Packet.PacketType.LobbyState:
+                        LogInfo("[PacketHandler] Processing LobbyState packet type in switch.");
+                        try 
+                        {
+                            ProcessLobbyStatePacket(data); 
+                            LogInfo("[PacketHandler] Called ProcessLobbyStatePacket.");
+                        } 
+                        catch (Exception e) 
+                        {
+                            LogError($"[PacketHandler] Error calling ProcessLobbyStatePacket: {e.Message}\n{e.StackTrace}"); 
+                            OnPacketError?.Invoke(Packet.PacketType.LobbyState, e.Message);
+                        }
+                        break;
+                    
                     case Packet.PacketType.ReadyInLobby:
                         try {
                             ProcessReadyInLobbyPacket(data);
