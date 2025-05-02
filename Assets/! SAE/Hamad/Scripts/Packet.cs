@@ -25,7 +25,11 @@ namespace Hamad.Scripts
             Heartbeat,
             JoinLobby,
             Restart,
-            ReadyInLobby
+            ReadyInLobby,
+            
+            LobbyState,
+            LobbyPlayerJoin,
+            LobbyPlayerLeave
         }
 
         public PacketType packetType;

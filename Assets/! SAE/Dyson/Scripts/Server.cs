@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using __SAE.Dyson.Scripts.Lobby;
+using __SAE.Leonardo.Scripts.Packets;
 using UnityEngine;
 using Dyson.GPG222.Lobby;
 using Dyson.Scripts.Lobby;
@@ -54,7 +55,7 @@ namespace Dyson_GPG222_Server
         
         private NetworkConnection networkConnection;
         private Lobby lobby;
-        private JoinLobby joinLobby;
+        private LobbyConnectionManager _lobbyConnectionManager;
         
         public enum ServerState
         {
@@ -89,7 +90,7 @@ namespace Dyson_GPG222_Server
         {
             networkConnection = GetComponent<NetworkConnection>();
             lobby = FindObjectOfType<Lobby>();
-            joinLobby = FindObjectOfType<JoinLobby>();
+            _lobbyConnectionManager = FindObjectOfType<LobbyConnectionManager>();
             
             LogInfo("Server component ready");
         }
@@ -545,6 +546,9 @@ namespace Dyson_GPG222_Server
                     case Packet.PacketType.ReadyInLobby:
                         ProcessReadyInLobbyPacket(data, clientId);
                         break;
+                    case Packet.PacketType.LobbyState:
+                        ProcessLobbyStatePacket(data, clientId);
+                        break;
                         
                     default:
                         LogWarning($"Unknown packet type received from client {clientId}: {basePacket.packetType}");
@@ -645,6 +649,26 @@ namespace Dyson_GPG222_Server
         }
         
         /// <summary>
+        /// Processes a lobby state packet.
+        /// </summary>
+        private void ProcessLobbyStatePacket(byte[] data, int clientId)
+        {
+            try
+            {
+                LobbyStatePacket statePacket = new LobbyStatePacket().Deserialize(data);
+        
+                LogInfo($"Received lobby state packet from client {clientId} with {statePacket.Players.Count} players");
+        
+                // Forward this packet to all clients.
+                Broadcast(Packet.PacketType.LobbyState, data, clientId);
+            }
+            catch (Exception e)
+            {
+                LogError($"Error processing lobby state packet from client {clientId}: {e.Message}");
+            }
+        }
+        
+        /// <summary>
         /// Processes a ping packet.
         /// </summary>
         /// <param name="data">The packet data.</param>
@@ -705,22 +729,38 @@ namespace Dyson_GPG222_Server
         /// <summary>
         /// Processes a lobby packet.
         /// </summary>
-        /// <param name="data">The packet data.</param>
-        /// <param name="clientId">The client ID that sent the packet.</param>
         private void ProcessLobbyPacket(byte[] data, int clientId)
         {
             try
             {
                 LobbyPacket lobbyPacket = new LobbyPacket().Deserialize(data);
-                
+        
                 LogInfo($"Client {clientId} ({lobbyPacket.playerData.name}) is joining the lobby");
-                
                 connectedPlayers[clientId] = lobbyPacket.playerData;
-                
+        
+                // Notify all clients about the new player.
                 MessagePacket joinMessage = new MessagePacket(lobbyPacket.playerData, "JOIN_LOBBY");
                 byte[] joinData = joinMessage.Serialize();
-                
                 Broadcast(Packet.PacketType.Message, joinData, -1);
+        
+                // Create a lobby state packet with all connected players.
+                LobbyStatePacket statePacket = new LobbyStatePacket(new PlayerData("Server", 0));
+        
+                // Add all connected players to the state packet.
+                foreach (var player in connectedPlayers)
+                {
+                    // Check if this player has a ready state (if they're in the lobby).
+                    bool isReady = false;
+            
+                    // Add the player to the state packet.
+                    statePacket.AddPlayer(player.Key, player.Value.name, isReady);
+                }
+        
+                // Serialize and send the packet to the new client.
+                byte[] stateData = statePacket.Serialize();
+                SendToClient(clientId, stateData);
+        
+                LogInfo($"Sent current lobby state directly to client {clientId}");
             }
             catch (Exception e)
             {

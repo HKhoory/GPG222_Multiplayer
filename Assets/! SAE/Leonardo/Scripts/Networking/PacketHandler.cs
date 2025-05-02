@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using __SAE.Leonardo.Scripts.Packets;
 using Dyson.GPG222.Lobby;
 using UnityEngine;
 using Hamad.Scripts;
@@ -71,6 +72,32 @@ namespace Leonardo.Scripts.Networking
 
         #region Packet Processing Methods
 
+        public event Action<List<LobbyStatePacket.LobbyPlayerInfo>> OnLobbyStateReceived;
+
+        /// <summary>
+        /// Process lobby state packets.
+        /// </summary>
+        /// <param name="data">The raw packet data.</param>
+        private void ProcessLobbyStatePacket(byte[] data)
+        {
+            try
+            {
+                LobbyStatePacket statePacket = new LobbyStatePacket().Deserialize(data);
+        
+                if (_verboseLogging)
+                {
+                    LogInfo($"Received lobby state with {statePacket.Players.Count} players");
+                }
+        
+                OnLobbyStateReceived?.Invoke(statePacket.Players);
+            }
+            catch (Exception e)
+            {
+                LogError($"Error processing lobby state packet: {e.Message}");
+                OnPacketError?.Invoke(Packet.PacketType.LobbyState, e.Message);
+            }
+        }
+        
         /// <summary>
         /// Processes a raw packet received from the network.
         /// </summary>

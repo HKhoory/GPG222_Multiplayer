@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using __SAE.Dyson.Scripts.Lobby;
 using __SAE.Leonardo.Scripts.ClientRelated;
+using __SAE.Leonardo.Scripts.Packets;
 using Hamad.Scripts;
 using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Networking;
@@ -162,17 +163,22 @@ namespace Dyson.Scripts.Lobby
             }
         }
 
-        private void RegisterEventHandlers() {
-            if (networkClient != null) {
+        private void RegisterEventHandlers()
+        {
+            if (networkClient != null)
+            {
                 StartCoroutine(WaitForPacketHandlerAndRegister());
             }
-            else {
+            else
+            {
                 LogError("NetworkClient is still null during event registration!");
             }
         }
 
-        private IEnumerator WaitForPacketHandlerAndRegister() {
-            while (networkClient.GetPacketHandler() == null) {
+        private IEnumerator WaitForPacketHandlerAndRegister()
+        {
+            while (networkClient.GetPacketHandler() == null)
+            {
                 LogInfo("Waiting for NetworkClient's PacketHandler to be ready...");
                 yield return null;
             }
@@ -181,6 +187,9 @@ namespace Dyson.Scripts.Lobby
             PacketHandler packetHandler = networkClient.GetPacketHandler();
             packetHandler.OnPlayerReadyStateChanged += HandlePlayerReadyState;
             packetHandler.OnMessageReceived += HandleLobbyMessage;
+            packetHandler.OnLobbyStateReceived += HandleLobbyState;
+            
+            LogInfo("Event handlers registered successfully");
         }
 
         private void UnregisterEventHandlers() {
@@ -248,6 +257,27 @@ namespace Dyson.Scripts.Lobby
 
         #region Message Handling Methods
 
+        private void HandleLobbyState(List<LobbyStatePacket.LobbyPlayerInfo> players)
+        {
+            LogInfo($"Received lobby state with {players.Count} players");
+    
+            foreach (var playerInfo in players)
+            {
+                if (!allPlayerStates.ContainsKey(playerInfo.ClientId))
+                {
+                    ClientState newState = new ClientState();
+                    newState.ClientId = playerInfo.ClientId;
+                    newState.isReady = playerInfo.IsReady;
+                    newState.name = playerInfo.PlayerName;
+            
+                    AddPlayerToLobby(newState);
+                    LogInfo($"Added player {playerInfo.PlayerName} with ID {playerInfo.ClientId}");
+                }
+            }
+    
+            UpdateStatusText($"In Lobby - {allPlayerStates.Count} players");
+        }
+        
         /// <summary>
         /// Handles lobby messages from the server.
         /// </summary>
@@ -262,6 +292,10 @@ namespace Dyson.Scripts.Lobby
             else if (message == "START_GAME") {
                 LogInfo("Received START_GAME message");
                 OnStartGameMessageReceived();
+            }
+            else if (message == "REQUEST_LOBBY_STATE" && isHost) {
+                LogInfo("Received request to broadcast lobby state from server");
+                BroadcastLobbyState();
             }
             else if (message.StartsWith("LOBBY_STATE:")) {
                 if (!isHost) {

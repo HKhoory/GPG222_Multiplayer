@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace __SAE.Dyson.Scripts.Lobby
 {
-    public class JoinLobby : MonoBehaviour
+    public class LobbyConnectionManager : MonoBehaviour
     {
         [Header("- Player Settings")]
         [SerializeField] private TMP_InputField playerNameInput;
