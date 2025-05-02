@@ -1,11 +1,15 @@
-using __SAE.Leonardo.Scripts.ClientRelated;
-using Dyson_GPG222_Server;
-using TMPro;
+using __SAE.Leonardo.Scripts.ClientRelated; 
+using Dyson_GPG222_Server; 
+using TMPro; 
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UI; 
 
-namespace __SAE.Dyson.Scripts.Lobby
+namespace __SAE.Dyson.Scripts.Lobby 
 {
+    /// <summary>
+    /// Manages the initial connection UI, allowing the user to host or join a lobby.
+    /// Handles setting player name, server IP, and initiating the connection process.
+    /// </summary>
     public class LobbyConnectionManager : MonoBehaviour
     {
         [Header("- Player Settings")]
@@ -24,36 +28,30 @@ namespace __SAE.Dyson.Scripts.Lobby
         private bool isHost;
         private string serverIp = "127.0.0.1";
 
-        [Header("- Debug Settings")]
-        [SerializeField] private bool verboseLogging = false;
-
         private NetworkClient _networkClient;
         private Server _server;
 
-        // --- State Variables for Polling Logic ---
         private bool _isWaitingToConnectAfterHosting = false;
         private float _connectDelayTimer = 0f;
         private string _pendingPlayerNameForConnect = "";
         private const float ServerStartConnectDelay = 0.5f;
-        // --- End State Variables ---
 
+        /// <summary>
+        /// Called when the script instance is being loaded. Finds components and sets up listeners.
+        /// </summary>
         private void Awake() {
-            // Find required components.
             _server = FindObjectOfType<Server>();
             _networkClient = FindObjectOfType<NetworkClient>();
 
-            // Set default IP.
             if (ipAddressInput != null)
                 ipAddressInput.text = "127.0.0.1";
 
-            // Add button listeners.
             if (hostButton != null)
                 hostButton.onClick.AddListener(CreateServer);
 
             if (joinButton != null)
                 joinButton.onClick.AddListener(JoinLobbyButton);
 
-            // Initialize panels.
             if (connectionPanel != null)
                 connectionPanel.SetActive(true);
 
@@ -64,10 +62,11 @@ namespace __SAE.Dyson.Scripts.Lobby
                 string randomNumber = Random.Range(1000, 10000).ToString();
                 playerNameInput.text = defaultNamePrefix + randomNumber;
             }
-
-            LogInfo("LobbyConnectionManager initialized");
         }
 
+        /// <summary>
+        /// Called every frame. Handles the timed delay for connecting the client after hosting.
+        /// </summary>
         private void Update()
         {
             if (_isWaitingToConnectAfterHosting)
@@ -80,6 +79,10 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
+        /// <summary>
+        /// Initiates the server creation process when the host button is clicked.
+        /// Starts the server and sets up a delayed client connection.
+        /// </summary>
         public void CreateServer() {
             UpdateStatus("Starting server...");
 
@@ -91,45 +94,41 @@ namespace __SAE.Dyson.Scripts.Lobby
             if (_server != null) {
                 _server.enabled = true;
                 _server.StartServer();
-                LogInfo("Server started successfully");
 
                 _pendingPlayerNameForConnect = playerName;
                 _connectDelayTimer = ServerStartConnectDelay;
                 _isWaitingToConnectAfterHosting = true; 
-                LogInfo($"Will attempt client connection after {ServerStartConnectDelay} seconds.");
-
             }
             else {
-                LogError("Server component not found!");
                 UpdateStatus("Error: Server component not found!");
             }
         }
 
-
+        /// <summary>
+        /// Connects the local client after the server has been started and the initial delay has passed.
+        /// </summary>
         private void ConnectClientAfterHosting() {
-            LogInfo("Connect delay finished. Attempting to connect client...");
             if (_networkClient != null) {
                 _networkClient.SetPlayerName(_pendingPlayerNameForConnect); 
                 _networkClient.SetHostStatus(isHost, serverIp);
                 _networkClient.InitiateConnection();
-                LogInfo("Initiated client connection");
 
-                // Switch panels.
                 if (connectionPanel != null) connectionPanel.SetActive(false);
                 if (lobbyPanel != null) lobbyPanel.SetActive(true);
-                LogInfo("Switched to lobby panel");
             }
             else {
-                LogError("NetworkClient component not found!");
                 UpdateStatus("Error: NetworkClient component not found!");
             }
         }
 
+        /// <summary>
+        /// Initiates the client joining process when the join button is clicked.
+        /// Sets the client status and connects to the specified server IP.
+        /// </summary>
         public void JoinLobbyButton() {
             UpdateStatus("Connecting to server...");
 
             string playerName = GetPlayerName();
-            Debug.Log($"[NAME DEBUG] JoinLobbyButton: Player name from input: {playerName}");
 
             isHost = false;
 
@@ -139,33 +138,34 @@ namespace __SAE.Dyson.Scripts.Lobby
                     serverIp = "127.0.0.1";
             }
 
-            LogInfo($"Player set as client, server IP: {serverIp}");
-
             if (_networkClient != null) {
                 _networkClient.SetPlayerName(playerName);
-                Debug.Log($"[NAME DEBUG] JoinLobbyButton: Sent name to NetworkClient: {playerName}");
-
                 _networkClient.SetHostStatus(isHost, serverIp);
                 _networkClient.InitiateConnection();
-                LogInfo("Initiated client connection");
             }
             else {
-                LogError("NetworkClient component not found!");
                 UpdateStatus("Error: NetworkClient component not found!");
                 return;
             }
 
             if (connectionPanel != null) connectionPanel.SetActive(false);
             if (lobbyPanel != null) lobbyPanel.SetActive(true);
-            LogInfo("Switched to lobby panel");
         }
+
+        /// <summary>
+        /// Updates the status text displayed in the UI.
+        /// </summary>
+        /// <param name="message">The message to display.</param>
         private void UpdateStatus(string message) {
             if (statusText != null) {
                 statusText.text = message;
             }
-            LogInfo($"Status: {message}");
         }
 
+        /// <summary>
+        /// Retrieves the player name from the input field or generates a default name.
+        /// </summary>
+        /// <returns>The player's name.</returns>
         private string GetPlayerName() {
             if (playerNameInput != null && !string.IsNullOrEmpty(playerNameInput.text)) {
                 return playerNameInput.text;
@@ -174,20 +174,9 @@ namespace __SAE.Dyson.Scripts.Lobby
             return defaultNamePrefix + randomNumber;
         }
 
-        #region Logging Methods
-
-        private void LogInfo(string message) {
-            if (verboseLogging) {
-                Debug.Log($"[LobbyConnectionManager] {message}");
-            }
-        }
-
-        private void LogError(string message) {
-            Debug.LogError($"[LobbyConnectionManager] ERROR: {message}");
-        }
-
-        #endregion
-
+        /// <summary>
+        /// Displays simple debug information on the screen using the legacy GUI system.
+        /// </summary>
         private void OnGUI() {
             GUI.Label(new Rect(10, 10, 200, 30), isHost ? "MODE: HOST" : "MODE: CLIENT");
             GUI.Label(new Rect(10, 40, 200, 30), $"Server IP: {serverIp}");
