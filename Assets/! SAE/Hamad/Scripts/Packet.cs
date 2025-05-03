@@ -26,7 +26,7 @@ namespace Hamad.Scripts
             JoinLobby,
             Restart,
             ReadyInLobby,
-            
+            FreezeEvent,
             LobbyState,
             LobbyPlayerJoin,
             LobbyPlayerLeave

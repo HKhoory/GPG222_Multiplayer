@@ -291,7 +291,26 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
                 LogError($"Failed to send push event: {ex.Message}");
             }
         }
-
+        /// <summary>
+        /// Sends a freeze event to the server.
+        /// </summary>
+        public void SendFreezeEvent(int targetPlayerTag, float freezeDuration, string effectName)
+        {
+            if (!IsConnected) {
+                LogWarning($"Cannot send freeze event: not connected to server");
+                return;
+            }
+            try {
+                byte[] data = _packetHandler.CreateFreezeEventPacket(targetPlayerTag, freezeDuration, effectName);
+                _networkConnection.SendData(data);
+                if (verboseLogging) {
+                    LogInfo($"Sent freeze event to player {targetPlayerTag} with freezeDuration {freezeDuration}");
+                }
+            }
+            catch (Exception ex) {
+                LogError($"Failed to send freeze event: {ex.Message}");
+            }
+        }
         /// <summary>
         /// Sends a heartbeat to keep the connection alive.
         /// </summary>
@@ -470,6 +489,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             _packetHandler.OnMessageReceived += HandleLobbyMessages;
             _packetHandler.OnHeartbeat += _networkConnection.CheckHeartbeat;
             _packetHandler.OnPlayerReadyStateChanged += HandlePlayerReadyStateChanged;
+            _packetHandler.OnFreezeEventReceived += _playerManager.HandleFreezeEvent;
 
             // Connect to server.
             LogInfo($"Connecting to server at {ipAddress}:{port} as {username}");

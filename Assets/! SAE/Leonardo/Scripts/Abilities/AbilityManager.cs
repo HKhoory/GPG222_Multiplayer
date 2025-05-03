@@ -84,6 +84,11 @@ namespace __SAE.Leonardo.Scripts.Abilities
             if (Input.GetKeyDown(ability3Key) && abilities.Count > 2) {
                 ActivateAbility(2);
             }
+            // FOURTH ABILITY. --------------
+            if (Input.GetKeyDown(ability4Key) && abilities.Count > 3)
+            {
+                ActivateAbility(3);
+            }
         }
 
         /// <summary>

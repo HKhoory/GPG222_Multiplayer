@@ -167,6 +167,31 @@ namespace __SAE.Leonardo.Scripts.Player
                 }
             }
         }
+        
+        //Dyson: Add function to handle freeze event
+        
+        public void HandleFreezeEvent(int playerTag, float freezeDuration, string effectName)
+        {
+            if (playerTag == _localPlayerData.tag)
+            {
+                GameObject localPlayer = GetLocalPlayerObject();
+                if (localPlayer != null)
+                {
+                    PlayerController controller = localPlayer.GetComponent<PlayerController>();
+                    if (controller != null)
+                    {
+                        controller.ApplyFreeze(freezeDuration, effectName);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("PlayerManager.cs: Local player has no PlayerController component.");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("PlayerManager.cs: Could not find local player object.");
+                }
+            }
 
         public void RemovePlayer(int playerTag) {
             if (_playerObjects.ContainsKey(playerTag)) {

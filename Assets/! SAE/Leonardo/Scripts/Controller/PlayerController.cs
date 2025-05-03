@@ -1,4 +1,5 @@
-using __SAE.Leonardo.Scripts.Abilities;
+using System.Collections;
+using System.Collections.Generic;
 using Leonardo.Scripts.Abilities;
 using Leonardo.Scripts.Effects;
 using UnityEngine;
@@ -183,5 +184,33 @@ namespace Leonardo.Scripts.Controller
         }
 
         #endregion
+        
+        //Dyson: Apply freeze effect
+        public void ApplyFreeze(float freezeDuration, string effectName)
+        {
+            if (!_isLocalPlayer) return;
+            
+            if (!string.IsNullOrEmpty(effectName) && EffectManager.Instance != null)
+            {
+                EffectManager.Instance.PlayEffect(effectName, transform.position, transform.rotation);
+            }
+
+            StartCoroutine(FreezeCoroutine(freezeDuration));
+        }
+
+        private IEnumerator FreezeCoroutine(float freezeDuration)
+        {
+            if (_rb != null)
+            {
+                _rb.constraints = RigidbodyConstraints.FreezeAll;
+            }
+
+            yield return new WaitForSeconds(freezeDuration);
+
+            if (_rb != null)
+            {
+                _rb.constraints = RigidbodyConstraints.None;
+            }
+        }
     }
 }
