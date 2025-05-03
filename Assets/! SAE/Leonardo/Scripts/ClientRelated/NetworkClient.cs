@@ -20,7 +20,6 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
 
         [Header("- Connection Settings")]
         [SerializeField] private string playerNamePrefix = "Client-Player";
-
         [SerializeField] private string ipAddress = "127.0.0.1";
         [SerializeField] private bool connectionOnStart = true;
         [SerializeField] private int port = 2121;
@@ -31,7 +30,6 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
 
         [Header("- Network Settings")]
         [SerializeField] private float updateInterval = 0.1f;
-
         [SerializeField] private float heartbeatInterval = 2.0f;
         [SerializeField] private float reconnectInterval = 5.0f;
         [SerializeField] private int maxReconnectAttempts = 5;
@@ -56,7 +54,6 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         private string _playerName = null;
         private bool _isHost;
         private Coroutine _connectionTimeoutCoroutine;
-
 
         public enum ConnectionState
         {
@@ -83,7 +80,6 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         #region Unity Lifecycle Methods
 
         private void Awake() {
-            // ! Change this.
             DontDestroyOnLoad(gameObject);
             LogInfo("NetworkClient initialized");
         }
@@ -141,7 +137,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         #region Public Methods
 
         /// <summary>
-        /// Read
+        /// Sets the player's name for network identification.
         /// </summary>
         /// <param name="name">The player's name.</param>
         public void SetPlayerName(string name) {
@@ -155,7 +151,6 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             }
         }
 
-
         /// <summary>
         /// Sets the status of the client as host or client.
         /// </summary>
@@ -163,10 +158,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         /// <param name="serverIp">The IP of the server.</param>
         public void SetHostStatus(bool isHost, string serverIp) {
             _isHost = isHost;
-
-            // Update ip address field used for connection
             ipAddress = serverIp;
-
             LogInfo($"Host status set: isHost={isHost}, serverIp={serverIp}");
         }
 
@@ -206,6 +198,28 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             // If host, ensure server is running.
             if (_isHost) {
                 StartServer();
+            }
+        }
+
+        /// <summary>
+        /// Activates gameplay for this client.
+        /// </summary>
+        public void ActivateGameplay() {
+            if (_playerManager != null) {
+                _playerManager.SetGameplayActive(true);
+
+                // Spawn the local player if not already spawned.
+                GameObject localPlayerObj = _playerManager.GetLocalPlayerObject();
+                if (localPlayerObj == null) {
+                    _playerManager.SpawnLocalPlayer();
+                    LogInfo("Spawned local player for gameplay");
+                }
+                else {
+                    LogInfo("Local player already exists, activating gameplay");
+                }
+            }
+            else {
+                LogWarning("Cannot activate gameplay: PlayerManager is null");
             }
         }
 
@@ -291,6 +305,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
                 LogError($"Failed to send push event: {ex.Message}");
             }
         }
+
         /// <summary>
         /// Sends a freeze event to the server.
         /// </summary>
@@ -311,6 +326,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
                 LogError($"Failed to send freeze event: {ex.Message}");
             }
         }
+
         /// <summary>
         /// Sends a heartbeat to keep the connection alive.
         /// </summary>
@@ -556,28 +572,6 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         }
 
         /// <summary>
-        /// Activates gameplay.
-        /// </summary>
-        public void ActivateGameplay() {
-            if (_playerManager != null) {
-                _playerManager.SetGameplayActive(true);
-
-                // Spawn the local player if not already spawned.
-                GameObject localPlayerObj = _playerManager.GetLocalPlayerObject();
-                if (localPlayerObj == null) {
-                    _playerManager.SpawnLocalPlayer();
-                    LogInfo("Spawned local player for gameplay");
-                }
-                else {
-                    LogInfo("Local player already exists, activating gameplay");
-                }
-            }
-            else {
-                LogWarning("Cannot activate gameplay: PlayerManager is null");
-            }
-        }
-
-        /// <summary>
         /// Handles a disconnection from the server.
         /// </summary>
         private void HandleDisconnect() {
@@ -719,12 +713,14 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             LogInfo($"Received message from {playerName}: {message}");
 
             if (message == "START_GAME") {
-                Lobby lobby = FindObjectOfType<Lobby>();
-                if (lobby != null) {
-                    lobby.OnStartGameMessageReceived();
-                }
-                else {
-                    LogWarning("Cannot start game: Lobby component not found");
+                // Handle the START_GAME message - this is critical for clients
+                // Start gameplay and spawn the local player
+                GameplayManager gameplayManager = FindObjectOfType<GameplayManager>();
+                if (gameplayManager != null) {
+                    gameplayManager.StartGameplay();
+                    LogInfo("Client received START_GAME message, activating gameplay");
+                } else {
+                    LogWarning("Cannot start game: GameplayManager component not found");
                 }
             }
             else if (message.StartsWith("LOBBY_STATE:")) {

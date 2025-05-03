@@ -19,29 +19,20 @@ namespace __SAE.Dyson.Scripts.Lobby
     /// </summary>
     public class Lobby : MonoBehaviour
     {
-        #region Serialized Fields
-
         [Header("- Lobby Configuration")]
         [SerializeField] private int minPlayersToStart = 2;
-
         [SerializeField] private float initialJoinDelay = 0.5f;
         [SerializeField] private float lobbyTimeout = 300f;
 
         [Header("- UI References")]
         [SerializeField] private Transform playersContainer;
-
         [SerializeField] private GameObject playerCardPrefab;
         [SerializeField] private TextMeshProUGUI statusText;
         [SerializeField] private TextMeshProUGUI timeoutText;
 
         [Header("- Gameplay Settings")]
         [SerializeField] private GameObject gameplayPanel;
-
         [SerializeField] private GameObject lobbyPanel;
-
-        #endregion
-
-        #region Private Fields
 
         private GameplayManager _gameplayManager;
         private ClientState localPlayerState;
@@ -75,10 +66,6 @@ namespace __SAE.Dyson.Scripts.Lobby
         private Coroutine reconnectCoroutine;
         private bool gameplayStarted = false;
 
-        #endregion
-
-        #region Public Properties
-
         /// <summary>
         /// Gets the state object for the local player.
         /// </summary>
@@ -109,20 +96,10 @@ namespace __SAE.Dyson.Scripts.Lobby
         /// </summary>
         public int MinPlayersToStart => minPlayersToStart;
 
-        #endregion
-
-        #region Unity Lifecycle Methods
-
-        /// <summary>
-        /// Called when the script instance is being loaded. Initializes fields.
-        /// </summary>
         private void Awake() {
             InitializeFields();
         }
 
-        /// <summary>
-        /// Called on the frame when a script is enabled just before any of the Update methods are called the first time.
-        /// </summary>
         private void Start() {
             SetLobbyState(LobbyState.Connecting);
             UpdateStatusText();
@@ -141,9 +118,6 @@ namespace __SAE.Dyson.Scripts.Lobby
             Invoke(nameof(DelayedJoinLobby), initialJoinDelay);
         }
 
-        /// <summary>
-        /// Called every frame. Updates timers and handles disconnection checks.
-        /// </summary>
         private void Update() {
             if (timeoutText != null && currentState == LobbyState.Waiting) {
                 timeoutText.text = $"Timeout: {Mathf.CeilToInt(lobbyTimeoutTimer)}s";
@@ -155,9 +129,6 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
-        /// <summary>
-        /// Called when the MonoBehaviour will be destroyed. Unregisters event handlers and stops coroutines.
-        /// </summary>
         private void OnDestroy() {
             UnregisterEventHandlers();
 
@@ -174,13 +145,6 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
-        #endregion
-
-        #region Initialization Methods
-
-        /// <summary>
-        /// Initializes fields and references needed by the Lobby script.
-        /// </summary>
         private void InitializeFields() {
             localPlayerState = new ClientState();
 
@@ -191,19 +155,12 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
-        /// <summary>
-        /// Subscribes lobby methods to relevant network events from the PacketHandler.
-        /// </summary>
         private void RegisterEventHandlers() {
             if (networkClient != null) {
                 StartCoroutine(WaitForPacketHandlerAndRegister());
             }
         }
 
-        /// <summary>
-        /// Coroutine that waits until the PacketHandler is available and then registers event handlers.
-        /// </summary>
-        /// <returns>An IEnumerator for the coroutine.</returns>
         private IEnumerator WaitForPacketHandlerAndRegister() {
             while (networkClient == null || networkClient.GetPacketHandler() == null) {
                 if (networkClient == null && Time.timeSinceLevelLoad > 1.0f) {
@@ -215,18 +172,19 @@ namespace __SAE.Dyson.Scripts.Lobby
 
             PacketHandler packetHandler = networkClient.GetPacketHandler();
 
+            // First remove any existing handlers to avoid duplicates
             packetHandler.OnPlayerReadyStateChanged -= HandlePlayerReadyState;
             packetHandler.OnMessageReceived -= HandleLobbyMessage;
             packetHandler.OnLobbyStateReceived -= HandleLobbyState;
 
+            // Then add our handlers
             packetHandler.OnPlayerReadyStateChanged += HandlePlayerReadyState;
             packetHandler.OnMessageReceived += HandleLobbyMessage;
             packetHandler.OnLobbyStateReceived += HandleLobbyState;
+            
+            Debug.Log("Lobby: Event handlers registered successfully");
         }
 
-        /// <summary>
-        /// Unsubscribes lobby methods from network events to prevent memory leaks.
-        /// </summary>
         private void UnregisterEventHandlers() {
             if (networkClient != null) {
                 PacketHandler packetHandler = networkClient.GetPacketHandler();
@@ -238,14 +196,6 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
-        #endregion
-
-        #region Lobby Connection Methods
-
-        /// <summary>
-        /// Attempts to join the lobby after a delay to ensure the network connection is established.
-        /// Determines host status and sends the join request.
-        /// </summary>
         private void DelayedJoinLobby() {
             if (networkClient == null || !networkClient.IsConnected) {
                 Invoke(nameof(DelayedJoinLobby), 1.0f);
@@ -273,7 +223,6 @@ namespace __SAE.Dyson.Scripts.Lobby
                 return;
             }
 
-
             if (isHost) {
                 localPlayerState.ClientId = 1;
 
@@ -296,9 +245,6 @@ namespace __SAE.Dyson.Scripts.Lobby
             networkClient.JoinLobby();
         }
 
-        /// <summary>
-        /// Handles the logic when a network disconnection is detected, potentially attempting reconnection.
-        /// </summary>
         private void HandleDisconnect() {
             reconnectTimer -= Time.deltaTime;
 
@@ -318,17 +264,11 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
-        #endregion
-
-        #region Message Handling Methods
-
-        /// <summary>
-        /// Processes the complete lobby state received from the server, updating local state and UI.
-        /// </summary>
-        /// <param name="players">A list of player information objects representing the current lobby state.</param>
         private void HandleLobbyState(List<LobbyStatePacket.LobbyPlayerInfo> players) {
             if (players == null) return;
 
+            Debug.Log($"Lobby: Received lobby state with {players.Count} players");
+            
             HashSet<int> receivedPlayerIds = new HashSet<int>();
             foreach (var playerInfo in players) {
                 if (playerInfo == null) continue;
@@ -406,16 +346,13 @@ namespace __SAE.Dyson.Scripts.Lobby
                 }
             }
 
+            SetLobbyState(LobbyState.Waiting);
             UpdateStatusText($"In Lobby - {allPlayerStates.Count} players");
         }
 
-        /// <summary>
-        /// Handles generic lobby-related messages received from the network.
-        /// Dispatches actions based on message content (e.g., JOIN_LOBBY, START_GAME).
-        /// </summary>
-        /// <param name="playerName">The name of the player who sent the message.</param>
-        /// <param name="message">The message content.</param>
         private void HandleLobbyMessage(string playerName, string message) {
+            Debug.Log($"Lobby: Received message from {playerName}: {message}");
+            
             if (message == "JOIN_LOBBY") {
                 HandlePlayerJoin(playerName);
             }
@@ -432,11 +369,6 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
-        /// <summary>
-        /// Handles the logic when a message indicates a new player has joined.
-        /// If this instance is the host, it adds the player and broadcasts the updated state.
-        /// </summary>
-        /// <param name="playerName">The name of the player who joined.</param>
         private void HandlePlayerJoin(string playerName) {
             if (isHost) {
                 if (networkClient?.LocalPlayer != null && playerName == networkClient.LocalPlayer.name) {
@@ -461,10 +393,6 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
-        /// <summary>
-        /// Broadcasts the current lobby state (list of players and statuses) to all connected clients.
-        /// Only executed by the host.
-        /// </summary>
         private void BroadcastLobbyState() {
             if (!isHost || networkClient == null || !networkClient.IsConnected) return;
 
@@ -474,16 +402,13 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
 
             networkClient.SendMessagePacket(stateMessage);
+            Debug.Log($"Lobby: Host broadcasting lobby state with {allPlayerStates.Count} players");
         }
 
-        /// <summary>
-        /// Parses the lobby state information received within a generic message string.
-        /// Updates the local lobby state based on the parsed data. Used by clients.
-        /// </summary>
-        /// <param name="message">The message string containing the lobby state data.</param>
         private void ParseLobbyState(string message) {
             try {
                 string[] parts = message.Substring(12).Split(',');
+                Debug.Log($"Lobby: Parsing lobby state with {parts.Length} parts");
 
                 foreach (string part in parts) {
                     if (string.IsNullOrEmpty(part)) continue;
@@ -524,22 +449,19 @@ namespace __SAE.Dyson.Scripts.Lobby
                 SetLobbyState(LobbyState.Waiting);
                 UpdateStatusText($"In Lobby - {allPlayerStates.Count} players");
             }
-            catch (Exception) {
+            catch (Exception e) {
+                Debug.LogError($"Lobby: Failed to parse lobby state: {e.Message}");
                 SetLobbyState(LobbyState.Error);
                 errorMessage = "Failed to parse lobby state";
                 UpdateStatusText("Error: Failed to parse lobby state");
             }
         }
 
-        /// <summary>
-        /// Handles updates to a player's ready status received from the network.
-        /// Updates the internal state and UI, and triggers checks if the host.
-        /// </summary>
-        /// <param name="playerData">The PlayerData object associated with the status change.</param>
-        /// <param name="isReady">The new ready status.</param>
         private void HandlePlayerReadyState(PlayerData playerData, bool isReady) {
             if (playerData == null) return;
 
+            Debug.Log($"Lobby: Player {playerData.name} ready state changed to {isReady}");
+            
             foreach (var pair in allPlayerStates) {
                 ClientState state = pair.Value;
                 if (state.name == playerData.name) {
@@ -555,14 +477,6 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
-        #endregion
-
-        #region Player Management Methods
-
-        /// <summary>
-        /// Adds a player's state to the internal dictionary and creates the corresponding UI element.
-        /// </summary>
-        /// <param name="playerState">The ClientState object representing the player to add.</param>
         public void AddPlayerToLobby(ClientState playerState) {
             if (playerState == null || playerState.ClientId == 0) return;
 
@@ -586,12 +500,9 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
 
             UpdateStatusText($"In Lobby - {allPlayerStates.Count} players");
+            Debug.Log($"Lobby: Added player {playerState.name} (ID: {playerState.ClientId}) to lobby");
         }
 
-        /// <summary>
-        /// Refreshes the UI element (player card) associated with a specific client ID.
-        /// </summary>
-        /// <param name="clientId">The client ID of the player whose UI needs updating.</param>
         private void UpdatePlayerReadyUI(int clientId) {
             if (playerCards.TryGetValue(clientId, out GameObject playerCard)) {
                 PlayerInLobby playerInLobby = playerCard.GetComponent<PlayerInLobby>();
@@ -604,14 +515,11 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
         }
 
-        /// <summary>
-        /// Checks if the minimum number of players have joined and if all players are ready.
-        /// If conditions are met, initiates the game start sequence. Only executed by the host.
-        /// </summary>
         public void CheckAllPlayersReady() {
             if (!isHost) return;
 
             if (allPlayerStates.Count < minPlayersToStart) {
+                Debug.Log($"Lobby: Not enough players to start ({allPlayerStates.Count}/{minPlayersToStart})");
                 return;
             }
 
@@ -624,18 +532,17 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
 
             if (allReady && !gameplayStarted) {
+                Debug.Log("Lobby: All players are ready, starting game");
                 StartGame();
             }
         }
 
-        #endregion
-
-        #region Game Start Methods
-
-        /// <summary>
-        /// Initiates the process of starting the game by changing state and notifying clients.
-        /// </summary>
         private void StartGame() {
+            if (gameplayStarted) {
+                Debug.LogWarning("Lobby: Game already started");
+                return;
+            }
+
             SetLobbyState(LobbyState.Starting);
 
             if (lobbyTimeoutCoroutine != null) {
@@ -644,7 +551,9 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
 
             if (networkClient != null) {
+                // Send START_GAME message to all clients
                 networkClient.SendMessagePacket("START_GAME");
+                Debug.Log("Lobby: Sent START_GAME message to all clients");
             }
             else {
                 SetLobbyState(LobbyState.Error);
@@ -656,123 +565,109 @@ namespace __SAE.Dyson.Scripts.Lobby
             startGameCoroutine = StartCoroutine(StartGameCoroutine());
         }
 
-        /// <summary>
-        /// Coroutine that waits briefly before starting gameplay in the current scene.
-        /// </summary>
-        /// <returns>An IEnumerator for the coroutine.</returns>
         private IEnumerator StartGameCoroutine() {
             UpdateStatusText("Starting game...");
             yield return new WaitForSeconds(1.0f);
-
             StartGameplayInLobbyScene();
         }
 
-        /// <summary>
-        /// Spawns the player PREFABS in the lobby scene, for players to control them later.
-        /// </summary>
         private void StartGameplayInLobbyScene() {
-            Debug.Log("StartGameplayInLobbyScene: Starting...");
+            Debug.Log("Lobby: Starting gameplay in lobby scene");
 
             // Only run this once
             if (gameplayStarted) {
-                Debug.Log("StartGameplayInLobbyScene: Already started, returning");
+                Debug.Log("Lobby: Gameplay already started, skipping");
                 return;
             }
 
             gameplayStarted = true;
 
-            Debug.Log("StartGameplayInLobbyScene: Finding GameplayManager");
-            _gameplayManager = FindFirstObjectByType<GameplayManager>();
-
+            // Find the GameplayManager and start gameplay
+            _gameplayManager = FindObjectOfType<GameplayManager>();
             if (_gameplayManager != null) {
-                Debug.Log("StartGameplayInLobbyScene: Found GameplayManager, calling StartGameplay()");
+                Debug.Log("Lobby: Starting gameplay via GameplayManager");
                 _gameplayManager.StartGameplay();
-                Debug.Log("StartGameplayInLobbyScene: StartGameplay() completed");
             }
             else {
-                Debug.LogError("StartGameplayInLobbyScene: GameplayManager not found, using fallback method");
-
-                // Fallback method if GameplayManager is not available.
-                Debug.Log("StartGameplayInLobbyScene: Using fallback method");
+                Debug.LogError("Lobby: GameplayManager not found");
+                
+                // Fallback method if GameplayManager is not available
+                Debug.Log("Lobby: Using fallback method to start gameplay");
 
                 // Hide lobby UI
                 if (lobbyPanel != null) {
                     lobbyPanel.SetActive(false);
-                    Debug.Log("StartGameplayInLobbyScene: Disabled lobby panel");
+                    Debug.Log("Lobby: Disabled lobby panel");
                 }
 
                 // Show gameplay UI
                 if (gameplayPanel != null) {
                     gameplayPanel.SetActive(true);
-                    Debug.Log("StartGameplayInLobbyScene: Enabled gameplay panel");
+                    Debug.Log("Lobby: Enabled gameplay panel");
                 }
 
                 // Spawn players
                 if (networkClient != null) {
-                    Debug.Log("StartGameplayInLobbyScene: NetworkClient found, getting PlayerManager");
+                    Debug.Log("Lobby: Getting PlayerManager from NetworkClient");
                     var playerManager = networkClient.GetPlayerManager();
                     if (playerManager != null) {
-                        Debug.Log("StartGameplayInLobbyScene: PlayerManager found, setting gameplay active");
+                        Debug.Log("Lobby: Setting gameplay active in PlayerManager");
                         playerManager.SetGameplayActive(true);
 
-                        Debug.Log("StartGameplayInLobbyScene: Spawning local player");
+                        Debug.Log("Lobby: Spawning local player");
                         playerManager.SpawnLocalPlayer();
 
                         // Enable abilities if the player has an ability manager
-                        Debug.Log("StartGameplayInLobbyScene: Getting local player object");
+                        Debug.Log("Lobby: Getting local player object");
                         GameObject localPlayer = playerManager.GetLocalPlayerObject();
                         if (localPlayer != null) {
-                            Debug.Log("StartGameplayInLobbyScene: Local player found, finding AbilityManager");
+                            Debug.Log("Lobby: Finding AbilityManager on local player");
                             __SAE.Leonardo.Scripts.Abilities.AbilityManager abilityManager =
                                 localPlayer.GetComponent<__SAE.Leonardo.Scripts.Abilities.AbilityManager>();
                             if (abilityManager != null) {
-                                Debug.Log("StartGameplayInLobbyScene: AbilityManager found, enabling abilities");
+                                Debug.Log("Lobby: Enabling abilities");
                                 abilityManager.SetAbilitiesEnabled(true);
-                                Debug.Log("StartGameplayInLobbyScene: Abilities enabled");
                             }
                             else {
-                                Debug.LogError("StartGameplayInLobbyScene: No AbilityManager found on local player");
+                                Debug.LogError("Lobby: No AbilityManager found on local player");
                             }
                         }
                         else {
-                            Debug.LogError("StartGameplayInLobbyScene: Local player object not found");
+                            Debug.LogError("Lobby: Local player object not found");
                         }
                     }
                     else {
-                        Debug.LogError("StartGameplayInLobbyScene: PlayerManager not found");
+                        Debug.LogError("Lobby: PlayerManager not found");
                     }
                 }
                 else {
-                    Debug.LogError("StartGameplayInLobbyScene: NetworkClient not found");
+                    Debug.LogError("Lobby: NetworkClient not found");
                 }
             }
 
-            Debug.Log("StartGameplayInLobbyScene: Completed");
+            Debug.Log("Lobby: Gameplay started successfully");
         }
 
         /// <summary>
-        /// Called when a START_GAME message is received from the network. Initiates gameplay in the lobby scene.
+        /// Called when a START_GAME message is received from the network.
+        /// Initiates gameplay in the lobby scene for clients.
         /// </summary>
         public void OnStartGameMessageReceived() {
-            Debug.Log("START_GAME message received by Lobby");
+            Debug.Log("Lobby: START_GAME message received");
 
             if (lobbyTimeoutCoroutine != null) {
                 StopCoroutine(lobbyTimeoutCoroutine);
                 lobbyTimeoutCoroutine = null;
-                Debug.Log("Stopped lobby timeout coroutine");
+                Debug.Log("Lobby: Stopped lobby timeout coroutine");
             }
 
             SetLobbyState(LobbyState.Starting);
-            Debug.Log("Set lobby state to Starting");
+            Debug.Log("Lobby: Set lobby state to Starting");
 
-            // Start gameplay in the lobby scene
+            // For clients, this is the critical path to start the game
             StartGameplayInLobbyScene();
         }
 
-        /// <summary>
-        /// Coroutine that handles the lobby timeout logic. If time expires, the host may start the game or an error occurs.
-        /// </summary>
-        /// <returns>An IEnumerator for the coroutine.</returns>
         private IEnumerator LobbyTimeoutCoroutine() {
             while (lobbyTimeoutTimer > 0) {
                 yield return new WaitForSeconds(1f);
@@ -781,50 +676,31 @@ namespace __SAE.Dyson.Scripts.Lobby
 
             if (isHost) {
                 if (allPlayerStates.Count >= minPlayersToStart) {
+                    Debug.Log("Lobby: Timeout reached with enough players, starting game");
                     StartGame();
                 }
                 else {
+                    Debug.LogWarning("Lobby: Timeout reached without enough players");
                     SetLobbyState(LobbyState.Error);
                     errorMessage = "Timeout reached without enough players";
                     UpdateStatusText("Error: Not enough players joined");
                 }
             }
             else {
+                Debug.LogWarning("Lobby: Lobby timed out as client");
                 SetLobbyState(LobbyState.Error);
                 errorMessage = "Lobby timed out";
                 UpdateStatusText("Error: Lobby timed out");
             }
         }
 
-        #endregion
-
-        #region State Management Methods
-
-        /// <summary>
-        /// Sets the internal state of the lobby.
-        /// </summary>
-        /// <param name="newState">The new LobbyState to transition to.</param>
         private void SetLobbyState(LobbyState newState) {
+            if (currentState == newState) return;
+            
+            Debug.Log($"Lobby: State changing from {currentState} to {newState}");
             currentState = newState;
-
-            switch (newState) {
-                case LobbyState.Initializing:
-                    break;
-                case LobbyState.Connecting:
-                    break;
-                case LobbyState.Waiting:
-                    break;
-                case LobbyState.Starting:
-                    break;
-                case LobbyState.Error:
-                    break;
-            }
         }
 
-        /// <summary>
-        /// Updates the status text displayed in the UI, either with a specific message or based on the current lobby state.
-        /// </summary>
-        /// <param name="message">An optional specific message to display. If null, uses a default message for the current state.</param>
         private void UpdateStatusText(string message = null) {
             if (statusText == null) return;
 
@@ -851,7 +727,5 @@ namespace __SAE.Dyson.Scripts.Lobby
                     break;
             }
         }
-
-        #endregion
     }
 }

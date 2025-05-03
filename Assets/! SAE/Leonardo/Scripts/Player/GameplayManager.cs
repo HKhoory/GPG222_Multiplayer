@@ -13,12 +13,6 @@ namespace __SAE.Leonardo.Scripts.Player
         [SerializeField] private GameObject lobbyUI;
         [SerializeField] private GameObject gameplayUI;
         
-        [Header("- Gameplay Settings")]
-        [SerializeField] private Transform[] spawnPoints;
-        [SerializeField] private bool createSpawnPointsIfMissing = true;
-        [SerializeField] private int spawnPointCount = 4;
-        [SerializeField] private float spawnCircleRadius = 5f;
-        
         [Header("- References")]
         [SerializeField] private NetworkClient networkClient;
         
@@ -57,51 +51,8 @@ namespace __SAE.Leonardo.Scripts.Player
             SetGameplayActive(false);
         }
         
-        private void Start()
-        {
-            // If we have spawn points in the inspector, add them to the manager.
-            if (spawnPoints != null && spawnPoints.Length > 0)
-            {
-                // Register the spawn points with the SpawnPointsManager
-                RegisterSpawnPoints();
-            }
-        }
-
-        private void RegisterSpawnPoints()
-        {
-            if (_spawnPointsManager != null && spawnPoints != null && spawnPoints.Length > 0)
-            {
-                // Todo: do this normally later.
-                var spawnPointsField = typeof(SpawnPointsManager).GetField("spawnPoints", 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                
-                if (spawnPointsField != null)
-                {
-                    var existingSpawnPoints = spawnPointsField.GetValue(_spawnPointsManager) as System.Collections.Generic.List<Transform>;
-                    if (existingSpawnPoints != null)
-                    {
-                        // Clear existing spawn points if any.
-                        existingSpawnPoints.Clear();
-                        
-                        // Add our spawn points.
-                        foreach (var point in spawnPoints)
-                        {
-                            if (point != null)
-                            {
-                                existingSpawnPoints.Add(point);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    Debug.LogError("GameplayManager: Could not access spawnPoints field in SpawnPointsManager");
-                }
-            }
-        }
-        
         /// <summary>
-        /// Activates gameplay mode.
+        /// Activates gameplay mode for all players.
         /// </summary>
         public void StartGameplay()
         {
@@ -131,7 +82,7 @@ namespace __SAE.Leonardo.Scripts.Player
         }
         
         /// <summary>
-        /// Enables abilities on all player objects.
+        /// Enables abilities on the local player.
         /// </summary>
         private void EnablePlayerAbilities()
         {

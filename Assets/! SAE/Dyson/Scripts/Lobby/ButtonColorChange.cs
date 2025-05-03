@@ -183,30 +183,32 @@ namespace Dyson.Scripts.Lobby
                 LogInfo("Button already clicked, ignoring");
                 return;
             }
-            
+    
             if (_networkClient == null)
             {
-                LogError("Cannot set ready state: NetworkClient not found!");
-                return;
+                _networkClient = FindObjectOfType<NetworkClient>();
+                if (_networkClient == null)
+                {
+                    LogError("Cannot set ready state: NetworkClient not found!");
+                    return;
+                }
             }
-            
+    
             _buttonClicked = true;
             isPlayerReady = true;
-            
+    
+            // ! Update UI BEFORE sending network message.
+            UpdateReadyUI(true);
+    
             if (playerClientState != null)
             {
                 playerClientState.isReady = true;
                 LogInfo("Updated local player ready state to true");
             }
-            else
-            {
-                LogWarning("PlayerClientState is null!");
-            }
-            
-            UpdateReadyUI(true);
-            
+    
             try
             {
+                // Now send the network message.
                 _networkClient.SendPlayerReadyState(true);
                 LogInfo("Sent ready state (true) to server");
             }
@@ -214,23 +216,12 @@ namespace Dyson.Scripts.Lobby
             {
                 LogError($"Failed to send ready state: {e.Message}");
             }
-            
+    
             if (audioSource != null && readySound != null)
             {
                 audioSource.PlayOneShot(readySound);
             }
-            
-            if (PlayerPrefs.GetInt("IsHost", 0) == 1 && _lobby != null)
-            {
-                _lobby.CheckAllPlayersReady();
-            }
-            
-            if (statusText != null)
-            {
-                statusText.text = "Waiting for other players...";
-            }
-        }
-    
+        }    
         /// <summary>
         /// Updates the UI to reflect the player's ready state.
         /// </summary>

@@ -1357,7 +1357,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 540101638}
-  - component: {fileID: 540101637}
   m_Layer: 0
   m_Name: '[Mngr] Spawn Points'
   m_TagString: Untagged
@@ -1365,26 +1364,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &540101637
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 540101636}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c6451bea0b90ccd4face4b5960bdac16, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  spawnPoints:
-  - {fileID: 114898669}
-  - {fileID: 748817937}
-  - {fileID: 2146633094}
-  - {fileID: 797724234}
-  createSpawnPointsIfEmpty: 0
-  numberOfSpawnPointsToCreate: 4
-  spawnCircleRadius: 5
 --- !u!4 &540101638
 Transform:
   m_ObjectHideFlags: 0
@@ -3979,6 +3958,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2100264882}
   - component: {fileID: 2100264883}
+  - component: {fileID: 2100264884}
   m_Layer: 0
   m_Name: '[Mngr] GameplayManager'
   m_TagString: Untagged
@@ -4015,15 +3995,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   lobbyUI: {fileID: 1809315030}
   gameplayUI: {fileID: 835152480}
+  networkClient: {fileID: 1577052029}
+--- !u!114 &2100264884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100264881}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6451bea0b90ccd4face4b5960bdac16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   spawnPoints:
   - {fileID: 114898669}
   - {fileID: 748817937}
   - {fileID: 2146633094}
   - {fileID: 797724234}
-  createSpawnPointsIfMissing: 1
-  spawnPointCount: 4
+  createSpawnPointsIfEmpty: 1
+  numberOfSpawnPointsToCreate: 4
   spawnCircleRadius: 5
-  networkClient: {fileID: 1577052029}
 --- !u!1 &2146633093
 GameObject:
   m_ObjectHideFlags: 0
