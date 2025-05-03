@@ -502,7 +502,8 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             _packetHandler.OnPositionReceived += _playerManager.UpdateRemotePlayerPosition;
             _packetHandler.OnPingResponseReceived += OnPingResponse;
             _packetHandler.OnPushEventReceived += _playerManager.HandlePushEvent;
-            _packetHandler.OnMessageReceived += HandleLobbyMessages; // Keep listening for other messages
+            _packetHandler.OnMessageReceived += HandleLobbyMessages;
+            _packetHandler.OnGameStartReceived += OnGameStartReceived;
             _packetHandler.OnHeartbeat += _networkConnection.CheckHeartbeat;
             _packetHandler.OnPlayerReadyStateChanged += HandlePlayerReadyStateChanged;
             _packetHandler.OnFreezeEventReceived += _playerManager.HandleFreezeEvent;
@@ -733,7 +734,31 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             }
         }
 
-
+        /// <summary>
+        /// Handles game start packet from the server.
+        /// </summary>
+        private void OnGameStartReceived() {
+            LogInfo("Received GameStart packet");
+    
+            // Find GameplayManager and start gameplay.
+            GameplayManager gameplayManager = FindObjectOfType<GameplayManager>();
+            if (gameplayManager != null) {
+                gameplayManager.StartGameplay();
+                LogInfo("Client received GameStart packet, activating gameplay");
+            } else {
+                LogWarning("Cannot start game: GameplayManager component not found");
+        
+                // Fallback to direct player manager activation.
+                if (_playerManager != null) {
+                    _playerManager.SetGameplayActive(true);
+                    _playerManager.SpawnLocalPlayer();
+                    LogInfo("Activated gameplay via PlayerManager directly");
+                } else {
+                    LogError("Cannot start game: Neither GameplayManager nor PlayerManager found");
+                }
+            }
+        }
+        
         /// <summary>
         /// Handles player ready state changes.
         /// </summary>

@@ -1429,7 +1429,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   minPlayersToStart: 2
   initialJoinDelay: 0.5
-  lobbyTimeout: 300
+  lobbyTimeout: 40
   playersContainer: {fileID: 307544516}
   playerCardPrefab: {fileID: 9149958383428980565, guid: 8da4c68a1b2774348a4eecea57e1c14e, type: 3}
   statusText: {fileID: 901370011}

@@ -550,10 +550,11 @@ namespace __SAE.Dyson.Scripts.Lobby
                 lobbyTimeoutCoroutine = null;
             }
 
-            if (networkClient != null) {
-                // Send START_GAME message to all clients
-                networkClient.SendMessagePacket("START_GAME");
-                Debug.Log("Lobby: Sent START_GAME message to all clients");
+            if (networkClient != null && networkClient.LocalPlayer != null) {
+                GameStartPacket gameStartPacket = new GameStartPacket(networkClient.LocalPlayer);
+                byte[] data = gameStartPacket.Serialize();
+                networkClient.GetConnection().SendData(data);
+                Debug.Log("Lobby: Sent GameStart packet to server");
             }
             else {
                 SetLobbyState(LobbyState.Error);

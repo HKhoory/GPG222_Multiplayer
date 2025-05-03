@@ -29,7 +29,8 @@ namespace Hamad.Scripts
             FreezeEvent,
             LobbyState,
             LobbyPlayerJoin,
-            LobbyPlayerLeave
+            LobbyPlayerLeave,
+            GameStart
         }
 
         public PacketType packetType;

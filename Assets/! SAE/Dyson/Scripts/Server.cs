@@ -434,6 +434,10 @@ namespace __SAE.Dyson.Scripts
                     case Packet.PacketType.PlayersPositionData:
                         ProcessPositionPacket(data, clientId);
                         break;
+                    
+                    case Packet.PacketType.GameStart:
+                        ProcessGameStartPacket(data, clientId);
+                        break;
 
                     case Packet.PacketType.PlayersRotationData:
                         ProcessRotationPacket(data, clientId);
@@ -575,6 +579,20 @@ namespace __SAE.Dyson.Scripts
             }
             catch (Exception e) {
                 LogError($"Error processing position packet from client {clientId}: {e.Message}");
+            }
+        }
+        
+        private void ProcessGameStartPacket(byte[] data, int clientId) {
+            try {
+                GameStartPacket gameStartPacket = new GameStartPacket().Deserialize(data);
+        
+                LogInfo($"Received game start packet from client {clientId}");
+        
+                // Broadcast to all clients (including sender)
+                Broadcast(gameStartPacket.packetType, data, -1);
+            }
+            catch (Exception e) {
+                LogError($"Error processing game start packet from client {clientId}: {e.Message}");
             }
         }
 

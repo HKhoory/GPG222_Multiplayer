@@ -35,6 +35,8 @@ namespace Leonardo.Scripts.Networking
         public event Action<byte> OnRestart;
         public event Action<byte[]> OnJoiningLobby;
 
+        public event Action OnGameStartReceived;
+
         public event Action<Packet.PacketType, int> OnPacketReceived;
         public event Action<Packet.PacketType, string> OnPacketError;
 
@@ -134,6 +136,16 @@ namespace Leonardo.Scripts.Networking
                         ProcessMessagePacket(data);
                         break;
 
+                    case Packet.PacketType.GameStart:
+                        try {
+                            ProcessGameStartPacket();
+                        }
+                        catch (Exception e) {
+                            LogError($"Error processing game start packet: {e.Message}");
+                            OnPacketError?.Invoke(Packet.PacketType.GameStart, e.Message);
+                        }
+                        break;
+                    
                     case Packet.PacketType.PlayersPositionData:
                         ProcessPositionPacket(data);
                         break;
@@ -269,6 +281,11 @@ namespace Leonardo.Scripts.Networking
             }
         }
 
+        private void ProcessGameStartPacket() {
+            LogInfo("Received game start packet");
+            OnGameStartReceived?.Invoke();
+        }
+        
         private void ProcessPositionPacket(byte[] data) {
             try {
                 PlayersPositionDataPacket positionPacket = new PlayersPositionDataPacket().Deserialize(data);

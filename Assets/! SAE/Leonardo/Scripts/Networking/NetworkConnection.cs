@@ -1,7 +1,9 @@
 using System;
 using System.Diagnostics;
 using System.Net.Sockets;
+using __SAE.Dyson.Scripts.Lobby;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace Leonardo.Scripts.Networking
 {
@@ -140,17 +142,14 @@ namespace Leonardo.Scripts.Networking
                 }
             }
         }
-
+        
         private void SendHeartbeat()
         {
-            // This would be implemented in NetworkClient, which would call
-            // its SendHeartBeat() method when this is triggered
+
         }
 
-        // Called when a heartbeat is received
         public void CheckHeartbeat()
         {
-            // Reset the heartbeat timer
             ResetHeartbeat();
         }
         
