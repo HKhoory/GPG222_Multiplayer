@@ -11,7 +11,7 @@ using Random = UnityEngine.Random;
 namespace __SAE.Leonardo.Scripts.ClientRelated
 {
     /// <summary>
-    /// Handles client-side network communication including connections, 
+    /// Handles client-side network communication including connections,
     /// packet sending, and reconnection logic.
     /// </summary>
     public class NetworkClient : MonoBehaviour
@@ -87,7 +87,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         private void Start() {
             _isHost = PlayerPrefs.GetInt("IsHost", 0) == 1;
             ipAddress = PlayerPrefs.GetString("ServerIP", "127.0.0.1");
-            
+
             _pingMeter = FindObjectOfType<PingMeter>();
             _reconnectTimer = reconnectInterval;
 
@@ -485,7 +485,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             if (_playerManager == null) {
                 // Find the PlayerManager in the scene.
                 _playerManager = FindObjectOfType<PlayerManager>();
-    
+
                 if (_playerManager != null) {
                     // Initialize it with the necessary data.
                     _playerManager.Initialize(playerPrefab, LocalPlayer);
@@ -502,7 +502,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             _packetHandler.OnPositionReceived += _playerManager.UpdateRemotePlayerPosition;
             _packetHandler.OnPingResponseReceived += OnPingResponse;
             _packetHandler.OnPushEventReceived += _playerManager.HandlePushEvent;
-            _packetHandler.OnMessageReceived += HandleLobbyMessages;
+            _packetHandler.OnMessageReceived += HandleLobbyMessages; // Keep listening for other messages
             _packetHandler.OnHeartbeat += _networkConnection.CheckHeartbeat;
             _packetHandler.OnPlayerReadyStateChanged += HandlePlayerReadyStateChanged;
             _packetHandler.OnFreezeEventReceived += _playerManager.HandleFreezeEvent;
@@ -712,6 +712,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         private void HandleLobbyMessages(string playerName, string message) {
             LogInfo($"Received message from {playerName}: {message}");
 
+            /*
             if (message == "START_GAME") {
                 // Handle the START_GAME message - this is critical for clients
                 // Start gameplay and spawn the local player
@@ -723,13 +724,15 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
                     LogWarning("Cannot start game: GameplayManager component not found");
                 }
             }
-            else if (message.StartsWith("LOBBY_STATE:")) {
+            */
+            if (message.StartsWith("LOBBY_STATE:")) {
                 // This will be handled by the Lobby component which also subscribes to OnMessageReceived.
                 if (verboseLogging) {
                     LogInfo("Received lobby state update");
                 }
             }
         }
+
 
         /// <summary>
         /// Handles player ready state changes.
