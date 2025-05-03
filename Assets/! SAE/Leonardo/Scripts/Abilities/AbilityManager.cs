@@ -19,6 +19,8 @@ namespace Leonardo.Scripts.Abilities
         [SerializeField] private KeyCode ability2Key = KeyCode.E;
         [Tooltip("Key to activate the third ability")]
         [SerializeField] private KeyCode ability3Key = KeyCode.Space;
+        [Tooltip("Key to activate the fourth ability")]
+        [SerializeField] private KeyCode ability4Key = KeyCode.Mouse0;
         
         private PlayerController _playerController;
         
@@ -70,6 +72,11 @@ namespace Leonardo.Scripts.Abilities
             if (Input.GetKeyDown(ability3Key) && abilities.Count > 2)
             {
                 ActivateAbility(2);
+            }
+            // FOURTH ABILITY. --------------
+            if (Input.GetKeyDown(ability4Key) && abilities.Count > 3)
+            {
+                ActivateAbility(3);
             }
         }
         
