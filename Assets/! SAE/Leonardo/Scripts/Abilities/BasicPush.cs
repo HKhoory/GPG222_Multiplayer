@@ -1,9 +1,10 @@
 using __SAE.Leonardo.Scripts.ClientRelated;
-using Leonardo.Scripts.ClientRelated;
+using __SAE.Leonardo.Scripts.Player;
+using Leonardo.Scripts.Abilities;
 using Leonardo.Scripts.Controller;
 using UnityEngine;
 
-namespace Leonardo.Scripts.Abilities
+namespace __SAE.Leonardo.Scripts.Abilities
 {
     /// <summary>
     /// An ability that pushes enemies in a cone shape in front of the player.
@@ -12,13 +13,15 @@ namespace Leonardo.Scripts.Abilities
     /// </summary>
     public class BasicPush : AbilityBase
     {
-        [Header("- Cone Settings")] [Tooltip("Angle of the cone in degrees")] [SerializeField]
+        [Header("- Cone Settings")]
+        [Tooltip("Angle of the cone in degrees")] [SerializeField]
         private float coneAngle = 60f;
 
         [Tooltip("- Distance the cone extends")] [SerializeField]
         private float coneDistance = 5f;
 
-        [Header("- Force Settings")] [Tooltip("Force applied to enemies hit by the ability")] [SerializeField]
+        [Header("- Force Settings")]
+        [Tooltip("Force applied to enemies hit by the ability")] [SerializeField]
         private float pushForce = 10f;
 
         // TODO: Check w team and delete later.
@@ -27,41 +30,50 @@ namespace Leonardo.Scripts.Abilities
         [Tooltip("Upward force applied")] [SerializeField]
         private float upwardForce = 2f;
 
-        protected override bool ExecuteAbilityEffect(Transform playerTransform)
-        {
-            Collider[] colliders = Physics.OverlapSphere(playerTransform.position, coneDistance);
+        [Header("- Gameplay Settings")]
+        [Tooltip("Whether this ability should be usable in the lobby")] [SerializeField]
+        private bool allowInLobby = false;
 
-            foreach (Collider collider in colliders)
-            {
-                if (collider.transform == playerTransform)
-                {
+        protected override bool ExecuteAbilityEffect(Transform playerTransform) {
+            // Made this so maybe we add a more dynamic lobby in the future in which players move around before the game starts.
+            if (!allowInLobby) {
+                GameplayManager gameplayManager = GameplayManager.Instance;
+                if (gameplayManager != null && !gameplayManager.IsGameplayActive()) {
+                    Debug.LogWarning("BasicPush.cs: Ability cannot be used in lobby");
+                    return false;
+                }
+            }
+
+            Collider[] colliders = Physics.OverlapSphere(playerTransform.position, coneDistance);
+            bool hitAnyTarget = false;
+
+            foreach (Collider collider in colliders) {
+                if (collider.transform == playerTransform) {
                     continue;
                 }
 
                 // Check if this is a remote player.
                 RemotePlayerController remotePlayer = collider.GetComponent<RemotePlayerController>();
 
-                if (remotePlayer == null)
-                {
+                if (remotePlayer == null) {
                     continue;
                 }
 
                 Vector3 directionToTarget = collider.transform.position - playerTransform.position;
 
-                // Ignore height difference for angle calculation?
+                // ? Ignore height difference for angle calculation.
                 directionToTarget.y = 0;
 
                 float angleToTarget = Vector3.Angle(playerTransform.forward, directionToTarget);
-                if (angleToTarget <= coneAngle / 2 && directionToTarget.magnitude <= coneDistance)
-                {
+                if (angleToTarget <= coneAngle / 2 && directionToTarget.magnitude <= coneDistance) {
+                    hitAnyTarget = true;
+
                     // Calculate push direction TO SEND IT AS A PACKAGE.
                     Vector3 pushDirection;
-                    if (useWorldSpace)
-                    {
+                    if (useWorldSpace) {
                         pushDirection = playerTransform.forward;
                     }
-                    else
-                    {
+                    else {
                         pushDirection = (collider.transform.position - playerTransform.position).normalized;
                     }
 
@@ -73,41 +85,35 @@ namespace Leonardo.Scripts.Abilities
 
                     // Only send network event.
                     int targetPlayerTag = remotePlayer.PlayerTag;
-                    NetworkClient networkClient = FindObjectOfType<NetworkClient>();
-                    if (networkClient != null && targetPlayerTag != -1)
-                    {
+                    NetworkClient networkClient = Object.FindObjectOfType<NetworkClient>();
+                    if (networkClient != null && targetPlayerTag != -1) {
                         networkClient.SendPushEvent(targetPlayerTag, finalForce, effectName);
                         // Play effect locally.
                         PlayEffect(collider.transform.position, collider.transform.rotation);
                         Debug.Log($"BasicPush.cs: Sent network push event for player with tag {targetPlayerTag}.");
                     }
-                    else
-                    {
+                    else {
                         Debug.LogWarning(
                             $"BasicPush.cs: Could not send network push event - NetworkClient or player tag not found.");
                     }
                 }
             }
 
-            return true;
+            return hitAnyTarget || coneDistance <= 0;
         }
 
-        private void ApplyPushForce(Transform playerTransform, Collider targetCollider)
-        {
+        private void ApplyPushForce(Transform playerTransform, Collider targetCollider) {
             Rigidbody targetRigidbody = targetCollider.GetComponent<Rigidbody>();
 
-            if (targetRigidbody == null)
-            {
+            if (targetRigidbody == null) {
                 return;
             }
 
             Vector3 pushDirection;
-            if (useWorldSpace)
-            {
+            if (useWorldSpace) {
                 pushDirection = playerTransform.forward;
             }
-            else
-            {
+            else {
                 pushDirection = (targetCollider.transform.position - playerTransform.position).normalized;
             }
 
@@ -121,18 +127,15 @@ namespace Leonardo.Scripts.Abilities
             // SEND TO NETWORK.
             RemotePlayerController remotePlayerController = targetCollider.GetComponent<RemotePlayerController>();
 
-            if (remotePlayerController != null)
-            {
+            if (remotePlayerController != null) {
                 int targetPlayerTag = remotePlayerController.PlayerTag;
 
-                NetworkClient networkClient = FindObjectOfType<NetworkClient>();
-                if (networkClient != null && targetPlayerTag != -1)
-                {
+                NetworkClient networkClient = Object.FindObjectOfType<NetworkClient>();
+                if (networkClient != null && targetPlayerTag != -1) {
                     networkClient.SendPushEvent(targetPlayerTag, finalForce, effectName);
                     Debug.Log($"BasicPush.cs: Sent network push event for player with tag {targetPlayerTag}.");
                 }
-                else
-                {
+                else {
                     Debug.LogWarning(
                         $"BasicPush.cs: Could not send network push event - NetworkClient or player tag not found.");
                 }

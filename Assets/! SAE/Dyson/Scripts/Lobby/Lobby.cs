@@ -4,12 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using __SAE.Leonardo.Scripts.ClientRelated;
 using __SAE.Leonardo.Scripts.Packets;
+using __SAE.Leonardo.Scripts.Player;
 using Dyson.Scripts.Lobby;
 using Hamad.Scripts;
 using Leonardo.Scripts.Networking;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace __SAE.Dyson.Scripts.Lobby
 {
@@ -22,23 +22,25 @@ namespace __SAE.Dyson.Scripts.Lobby
         #region Serialized Fields
 
         [Header("- Lobby Configuration")]
-        [SerializeField] private string gameSceneName = "Gameplay";
-
         [SerializeField] private int minPlayersToStart = 2;
         [SerializeField] private float initialJoinDelay = 0.5f;
         [SerializeField] private float lobbyTimeout = 300f;
 
         [Header("- UI References")]
         [SerializeField] private Transform playersContainer;
-
         [SerializeField] private GameObject playerCardPrefab;
         [SerializeField] private TextMeshProUGUI statusText;
         [SerializeField] private TextMeshProUGUI timeoutText;
+
+        [Header("- Gameplay Settings")]
+        [SerializeField] private GameObject gameplayPanel;
+        [SerializeField] private GameObject lobbyPanel;
 
         #endregion
 
         #region Private Fields
 
+        private GameplayManager _gameplayManager;
         private ClientState localPlayerState;
         private NetworkClient networkClient;
         private Dictionary<int, ClientState> allPlayerStates = new Dictionary<int, ClientState>();
@@ -68,6 +70,7 @@ namespace __SAE.Dyson.Scripts.Lobby
         private Coroutine startGameCoroutine;
         private Coroutine lobbyTimeoutCoroutine;
         private Coroutine reconnectCoroutine;
+        private bool gameplayStarted = false;
 
         #endregion
 
@@ -116,13 +119,20 @@ namespace __SAE.Dyson.Scripts.Lobby
 
         /// <summary>
         /// Called on the frame when a script is enabled just before any of the Update methods are called the first time.
-        /// Sets up initial state, event handlers, and timers.
         /// </summary>
-        private void Start() {
+        private void Start()
+        {
             SetLobbyState(LobbyState.Connecting);
             UpdateStatusText();
 
             RegisterEventHandlers();
+
+            _gameplayManager = FindObjectOfType<GameplayManager>();
+            if (_gameplayManager == null)
+            {
+                GameObject gameplayManagerObj = new GameObject("GameplayManager");
+                _gameplayManager = gameplayManagerObj.AddComponent<GameplayManager>();
+            }
 
             lobbyTimeoutTimer = lobbyTimeout;
             lobbyTimeoutCoroutine = StartCoroutine(LobbyTimeoutCoroutine());
@@ -612,7 +622,7 @@ namespace __SAE.Dyson.Scripts.Lobby
                 }
             }
 
-            if (allReady) {
+            if (allReady && !gameplayStarted) {
                 StartGame();
             }
         }
@@ -646,31 +656,87 @@ namespace __SAE.Dyson.Scripts.Lobby
         }
 
         /// <summary>
-        /// Coroutine that waits briefly before loading the main game scene.
+        /// Coroutine that waits briefly before starting gameplay in the current scene.
         /// </summary>
         /// <returns>An IEnumerator for the coroutine.</returns>
         private IEnumerator StartGameCoroutine() {
             UpdateStatusText("Starting game...");
-            yield return new WaitForSeconds(0.5f);
-            LoadGameScene();
+            yield return new WaitForSeconds(1.0f);
+
+            StartGameplayInLobbyScene();
         }
 
         /// <summary>
-        /// Loads the main game scene specified by gameSceneName.
+        /// Spawns the player PREFABS in the lobby scene, for players to control them later.
         /// </summary>
-        private void LoadGameScene() {
-            try {
-                SceneManager.LoadScene(gameSceneName);
+        private void StartGameplayInLobbyScene()
+        {
+            // Only run this once
+            if (gameplayStarted) return;
+            gameplayStarted = true;
+            
+            Debug.Log("Starting gameplay in lobby scene");
+            _gameplayManager = FindFirstObjectByType<GameplayManager>();
+            
+            if (_gameplayManager != null)
+            {
+                _gameplayManager.StartGameplay();
+                Debug.Log("Started gameplay using GameplayManager");
             }
-            catch (Exception e) {
-                SetLobbyState(LobbyState.Error);
-                errorMessage = $"Failed to load game scene: {e.Message}";
-                UpdateStatusText("Error: Failed to load game scene");
+            else
+            {
+                // Fallback method if GameplayManager is not available.
+                Debug.Log("GameplayManager not found, using fallback method");
+        
+                // Hide lobby UI.
+                if (lobbyPanel != null)
+                {
+                    lobbyPanel.SetActive(false);
+                }
+                
+                // Show gameplay UI.
+                if (gameplayPanel != null)
+                {
+                    gameplayPanel.SetActive(true);
+                }
+        
+                // Spawn players.
+                if (networkClient != null)
+                {
+                    var playerManager = networkClient.GetPlayerManager();
+                    if (playerManager != null)
+                    {
+                        playerManager.SetGameplayActive(true);
+                        playerManager.SpawnLocalPlayer();
+                        
+                        // Enable abilities if the player has an ability manager.
+                        GameObject localPlayer = playerManager.GetLocalPlayerObject();
+                        if (localPlayer != null)
+                        {
+                            __SAE.Leonardo.Scripts.Abilities.AbilityManager abilityManager = 
+                                localPlayer.GetComponent<__SAE.Leonardo.Scripts.Abilities.AbilityManager>();
+                            if (abilityManager != null)
+                            {
+                                abilityManager.SetAbilitiesEnabled(true);
+                            }
+                        }
+                        
+                        Debug.Log("Spawned local player in lobby scene");
+                    }
+                    else
+                    {
+                        Debug.LogError("Could not spawn players: PlayerManager not found");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("Could not spawn players: NetworkClient not found");
+                }
             }
         }
 
         /// <summary>
-        /// Called when a START_GAME message is received from the network. Initiates scene loading.
+        /// Called when a START_GAME message is received from the network. Initiates gameplay in the lobby scene.
         /// </summary>
         public void OnStartGameMessageReceived() {
             if (lobbyTimeoutCoroutine != null) {
@@ -679,7 +745,9 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
 
             SetLobbyState(LobbyState.Starting);
-            LoadGameScene();
+            
+            // Start gameplay in the lobby scene
+            StartGameplayInLobbyScene();
         }
 
         /// <summary>

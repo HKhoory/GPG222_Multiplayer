@@ -1,11 +1,10 @@
 using System;
 using System.Collections;
 using __SAE.Dyson.Scripts.Lobby;
+using __SAE.Leonardo.Scripts.Player;
 using Dyson_GPG222_Server;
-using Dyson.Scripts.Lobby;
 using Hamad.Scripts;
 using Leonardo.Scripts.Networking;
-using Leonardo.Scripts.Player;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -92,7 +91,7 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         private void Start() {
             _isHost = PlayerPrefs.GetInt("IsHost", 0) == 1;
             ipAddress = PlayerPrefs.GetString("ServerIP", "127.0.0.1");
-
+            
             _pingMeter = FindObjectOfType<PingMeter>();
             _reconnectTimer = reconnectInterval;
 
@@ -150,7 +149,8 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             Debug.Log($"[NAME DEBUG] NetworkClient.SetPlayerName: Player name set to: {name}");
 
             if (LocalPlayer != null) {
-                Debug.Log($"[NAME DEBUG] NetworkClient.SetPlayerName: Updating existing LocalPlayer from name {LocalPlayer.name} to {name}");
+                Debug.Log(
+                    $"[NAME DEBUG] NetworkClient.SetPlayerName: Updating existing LocalPlayer from name {LocalPlayer.name} to {name}");
                 LocalPlayer = new PlayerData(name, LocalPlayer.tag);
             }
         }
@@ -431,9 +431,12 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             // Create local player data if not already created.
             if (LocalPlayer == null) {
                 LocalPlayer = new PlayerData(username, Random.Range(1000, 9999));
-                Debug.Log($"[NAME DEBUG] ConnectToServer: Created new LocalPlayer with name: {LocalPlayer.name} and tag: {LocalPlayer.tag}");
-            } else {
-                Debug.Log($"[NAME DEBUG] ConnectToServer: Using existing LocalPlayer with name: {LocalPlayer.name} and tag: {LocalPlayer.tag}");
+                Debug.Log(
+                    $"[NAME DEBUG] ConnectToServer: Created new LocalPlayer with name: {LocalPlayer.name} and tag: {LocalPlayer.tag}");
+            }
+            else {
+                Debug.Log(
+                    $"[NAME DEBUG] ConnectToServer: Using existing LocalPlayer with name: {LocalPlayer.name} and tag: {LocalPlayer.tag}");
             }
 
             // Clean up existing connection if any.
@@ -445,7 +448,16 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
 
             // Initialize player manager if not already created.
             if (_playerManager == null) {
-                _playerManager = new PlayerManager(playerPrefab, LocalPlayer);
+                // Find the PlayerManager in the scene.
+                _playerManager = FindObjectOfType<PlayerManager>();
+    
+                if (_playerManager != null) {
+                    // Initialize it with the necessary data.
+                    _playerManager.Initialize(playerPrefab, LocalPlayer);
+                    Debug.Log("Found and initialized PlayerManager");
+                } else {
+                    Debug.LogError("Could not find PlayerManager in scene - add one to the scene!");
+                }
             }
 
             // Set up event handlers.
@@ -475,18 +487,17 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
         /// </summary>
         private void HandleConnected() {
             _connectionState = ConnectionState.Connected;
-            
-            if (!string.IsNullOrEmpty(_playerName) && LocalPlayer != null)
-            {
+
+            if (!string.IsNullOrEmpty(_playerName) && LocalPlayer != null) {
                 LocalPlayer = new PlayerData(_playerName, LocalPlayer.tag);
                 LogInfo($"Updated local player name to {_playerName}");
             }
-            
+
             _reconnectAttempts = 0;
 
             LogInfo($"Connected to server at {ipAddress}:{port}");
 
-            // Cancel timeout coroutine
+            // Cancel timeout coroutine.
             if (_connectionTimeoutCoroutine != null) {
                 StopCoroutine(_connectionTimeoutCoroutine);
                 _connectionTimeoutCoroutine = null;
@@ -494,21 +505,55 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
 
             string currentSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
 
-            Debug.Log($"[NAME DEBUG] HandleConnected: LocalPlayer name: {LocalPlayer.name}, _playerName: {_playerName}");
-    
             if (!string.IsNullOrEmpty(_playerName) && LocalPlayer != null && _playerName != LocalPlayer.name) {
-                Debug.Log($"[NAME DEBUG] HandleConnected: LocalPlayer name doesn't match _playerName, updating from {LocalPlayer.name} to {_playerName}");
                 LocalPlayer = new PlayerData(_playerName, LocalPlayer.tag);
             }
-    
+
             if (currentSceneName.Contains("Lobby")) {
-                Debug.Log($"[NAME DEBUG] HandleConnected: About to join lobby with name: {LocalPlayer.name}");
-                JoinLobby();
+                // Check if PlayerManager has gameplay active.
+                bool isGameplayActive = _playerManager != null && _playerManager.IsGameplayActive();
+
+                if (isGameplayActive) {
+                    // If gameplay is active, spawn the player.
+                    _playerManager.SpawnLocalPlayer();
+
+                    // Send an initial position update.
+                    GameObject localPlayerObj = _playerManager.GetLocalPlayerObject();
+                    if (localPlayerObj != null) {
+                        SendPosition(localPlayerObj.transform.position);
+                    }
+                }
+                else {
+                    // Otherwise join the lobby
+                    JoinLobby();
+                }
             }
             else {
                 _playerManager.SpawnLocalPlayer();
                 // Send an initial "hello" message.
                 SendMessagePacket("Connected, hi!");
+            }
+        }
+
+        /// <summary>
+        /// Activates gameplay.
+        /// </summary>
+        public void ActivateGameplay() {
+            if (_playerManager != null) {
+                _playerManager.SetGameplayActive(true);
+
+                // Spawn the local player if not already spawned.
+                GameObject localPlayerObj = _playerManager.GetLocalPlayerObject();
+                if (localPlayerObj == null) {
+                    _playerManager.SpawnLocalPlayer();
+                    LogInfo("Spawned local player for gameplay");
+                }
+                else {
+                    LogInfo("Local player already exists, activating gameplay");
+                }
+            }
+            else {
+                LogWarning("Cannot activate gameplay: PlayerManager is null");
             }
         }
 

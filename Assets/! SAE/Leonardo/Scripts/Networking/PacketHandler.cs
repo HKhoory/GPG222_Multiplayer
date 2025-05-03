@@ -11,7 +11,6 @@ using Hamad.Scripts.Heartbeat;
 using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Controller;
 using Leonardo.Scripts.Packets;
-using Leonardo.Scripts.Player;
 using Hamad.Scripts.Restart;
 
 namespace Leonardo.Scripts.Networking
