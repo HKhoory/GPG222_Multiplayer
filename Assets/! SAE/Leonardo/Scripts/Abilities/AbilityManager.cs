@@ -22,6 +22,9 @@ namespace __SAE.Leonardo.Scripts.Abilities
 
         [Tooltip("Key to activate the third ability")] [SerializeField]
         private KeyCode ability3Key = KeyCode.Space;
+        
+        [Tooltip("Key to activate the fourth ability")] [SerializeField]
+        private KeyCode ability4Key = KeyCode.R;
 
         [SerializeField] private bool enableAbilitiesOnAwake = false;
         private bool _abilitiesEnabled = false;
