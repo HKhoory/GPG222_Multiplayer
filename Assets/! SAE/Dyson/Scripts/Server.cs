@@ -2,21 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using __SAE.Dyson.Scripts.Lobby;
 using __SAE.Leonardo.Scripts.Packets;
-using UnityEngine;
 using Dyson.GPG222.Lobby;
-using Dyson.Scripts.Lobby;
 using Hamad.Scripts;
+using Hamad.Scripts.Heartbeat;
 using Hamad.Scripts.Message;
 using Hamad.Scripts.Position;
-using Hamad.Scripts.Heartbeat;
 using Hamad.Scripts.Restart;
 using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Networking;
 using Leonardo.Scripts.Packets;
+using UnityEngine;
 
-namespace Dyson_GPG222_Server
+namespace __SAE.Dyson.Scripts
 {
     /// <summary>
     /// Server component that manages client connections, packet processing,
@@ -49,7 +47,7 @@ namespace Dyson_GPG222_Server
         private bool shutdownRequested = false;
         private object clientsLock = new object();
 
-        private Lobby lobby;
+        private Lobby.Lobby lobby;
 
         public enum ServerState
         {
@@ -76,7 +74,7 @@ namespace Dyson_GPG222_Server
         }
 
         private void Start() {
-            lobby = FindObjectOfType<Lobby>();
+            lobby = FindObjectOfType<Lobby.Lobby>();
             LogInfo("Server component ready");
         }
 
