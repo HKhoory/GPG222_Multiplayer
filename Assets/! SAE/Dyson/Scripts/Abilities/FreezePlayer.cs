@@ -10,7 +10,7 @@ namespace Dyson.GPG222.Abilities
     public class FreezePlayer : AbilityBase
     {
         private LayerMask layerMask;
-        private float freezeDuration;
+        [SerializeField] private float freezeDuration;
         private Rigidbody _rb;
         private RaycastHit hit;
         private void Awake()
@@ -22,7 +22,7 @@ namespace Dyson.GPG222.Abilities
         {
             UpdateCooldown(Time.deltaTime);
 
-            if (Input.GetKeyDown(KeyCode.Mouse0))
+            if (Input.GetKeyDown(KeyCode.R))
             {
                 TryActivateAbility(transform);
             }
@@ -37,12 +37,12 @@ namespace Dyson.GPG222.Abilities
                     Color.yellow);
                 Debug.Log("Did Hit");
                 StartCoroutine(FreezeCoroutine(freezeDuration));
-                if (hit.rigidbody != null)
+                /*if (hit.rigidbody != null)
                 {
                     hit.rigidbody.constraints = RigidbodyConstraints.FreezeAll;
                     PlayEffect(hit.point, Quaternion.identity);
                     return true;
-                }
+                } */
               /*  // Only send network event.
                 int targetPlayerTag = remotePlayer.PlayerTag;
                 NetworkClient networkClient = FindObjectOfType<NetworkClient>();
