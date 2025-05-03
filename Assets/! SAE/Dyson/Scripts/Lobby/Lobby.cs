@@ -461,7 +461,7 @@ namespace __SAE.Dyson.Scripts.Lobby
             if (playerData == null) return;
 
             Debug.Log($"Lobby: Player {playerData.name} ready state changed to {isReady}");
-            
+    
             foreach (var pair in allPlayerStates) {
                 ClientState state = pair.Value;
                 if (state.name == playerData.name) {
@@ -471,10 +471,12 @@ namespace __SAE.Dyson.Scripts.Lobby
                 }
             }
 
+            // Update lobby state on host side only.
             if (isHost) {
                 BroadcastLobbyState();
-                CheckAllPlayersReady();
             }
+    
+            CheckAllPlayersReady();
         }
 
         public void AddPlayerToLobby(ClientState playerState) {
@@ -516,7 +518,6 @@ namespace __SAE.Dyson.Scripts.Lobby
         }
 
         public void CheckAllPlayersReady() {
-            if (!isHost) return;
 
             if (allPlayerStates.Count < minPlayersToStart) {
                 Debug.Log($"Lobby: Not enough players to start ({allPlayerStates.Count}/{minPlayersToStart})");
@@ -532,8 +533,8 @@ namespace __SAE.Dyson.Scripts.Lobby
             }
 
             if (allReady && !gameplayStarted) {
-                Debug.Log("Lobby: All players are ready, starting game");
-                StartGame();
+                Debug.Log("Lobby: All players are ready, starting game locally");
+                StartGameplayInLobbyScene();
             }
         }
 
@@ -549,21 +550,8 @@ namespace __SAE.Dyson.Scripts.Lobby
                 StopCoroutine(lobbyTimeoutCoroutine);
                 lobbyTimeoutCoroutine = null;
             }
-
-            if (networkClient != null && networkClient.LocalPlayer != null) {
-                GameStartPacket gameStartPacket = new GameStartPacket(networkClient.LocalPlayer);
-                byte[] data = gameStartPacket.Serialize();
-                networkClient.GetConnection().SendData(data);
-                Debug.Log("Lobby: Sent GameStart packet to server");
-            }
-            else {
-                SetLobbyState(LobbyState.Error);
-                errorMessage = "Cannot start game: NetworkClient is null";
-                UpdateStatusText("Error: Cannot start game");
-                return;
-            }
-
-            startGameCoroutine = StartCoroutine(StartGameCoroutine());
+            
+            StartGameplayInLobbyScene();
         }
 
         private IEnumerator StartGameCoroutine() {
