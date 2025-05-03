@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using __SAE.Leonardo.Scripts.Packets;
 using Dyson.GPG222.Lobby;
+using Dyson.GPG222.Packets;
 using UnityEngine;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
@@ -28,6 +29,8 @@ namespace Leonardo.Scripts.Networking
         public event Action<PlayerPositionData> OnPositionReceived;
         public event Action OnPingResponseReceived;
         public event Action<int, Vector3, string> OnPushEventReceived;
+
+        public event Action<int, float, string> OnFreezeEventReceived;
         public event Action<PlayerData, bool> OnPlayerReadyStateChanged;
         public event Action OnHeartbeat;
         public event Action<byte> OnHeartbeatReceived;
@@ -151,7 +154,15 @@ namespace Leonardo.Scripts.Networking
                         }
 
                         break;
-
+                    case Packet.PacketType.FreezeEvent:
+                        try {
+                            ProcessFreezeEventPacket(data);
+                        }
+                        catch (Exception e) {
+                            LogError($"Error processing freeze event: {e.Message}");
+                            OnPacketError?.Invoke(Packet.PacketType.FreezeEvent, e.Message);
+                        }
+                        break;
                     case Packet.PacketType.Heartbeat:
                         try {
                             ProcessHeartbeatPacket(data);
@@ -219,6 +230,24 @@ namespace Leonardo.Scripts.Networking
                 LogError($"Error processing packet: {e.Message}\n{e.StackTrace}");
                 OnPacketError?.Invoke(Packet.PacketType.None, e.Message);
             }
+        }
+
+        private void ProcessFreezeEventPacket(byte[] data)
+        {
+            FreezeEventPacket freezeEventPacket = new FreezeEventPacket().Deserialize(data);
+
+            if (freezeEventPacket == null || freezeEventPacket.playerData == null) {
+                LogError("Invalid freeze packet");
+                return;
+            }
+
+            float freezeDuration = freezeEventPacket.FreezeDuration;
+            LogInfo(
+                $"Processing freeze packet from {freezeEventPacket.playerData.name}. Target: {freezeEventPacket.TargetPlayerTag}, " +
+                $"FreezeDuration: {freezeDuration}");
+
+            OnFreezeEventReceived?.Invoke(freezeEventPacket.TargetPlayerTag, freezeDuration,
+                freezeEventPacket.EffectName ?? string.Empty);
         }
 
         private void ProcessMessagePacket(byte[] data) {
@@ -378,6 +407,31 @@ namespace Leonardo.Scripts.Networking
             }
             catch (Exception e) {
                 LogError($"Error creating push event packet: {e.Message}");
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Creates a freeze event packet.
+        /// </summary>
+        /// <param name="targetPlayerTag">The tag of the target player.</param>
+        /// <param name="freezeDuration">How long the player should be freezed.</param>
+        /// <param name="effectName">The name of the effect to play.</param>
+        /// <returns>The serialized packet data.</returns>
+        public byte[] CreateFreezeEventPacket(int targetPlayerTag, float freezeDuration, string effectName) {
+            ValidateLocalPlayerData();
+
+            try {
+                FreezeEventPacket freezePacket = new FreezeEventPacket(_localPlayerData, targetPlayerTag, freezeDuration, effectName);
+                byte[] data = freezePacket.Serialize();
+
+                if (_verboseLogging) {
+                    LogInfo($"Created freeze event packet for player {targetPlayerTag} with freeze duration {freezeDuration}");
+                }
+                return data;
+            }
+            catch (Exception e) {
+                LogError($"Error creating freeze event packet: {e.Message}");
                 return null;
             }
         }
