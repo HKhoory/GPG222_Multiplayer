@@ -23,17 +23,20 @@ namespace __SAE.Dyson.Scripts.Lobby
 
         [Header("- Lobby Configuration")]
         [SerializeField] private int minPlayersToStart = 2;
+
         [SerializeField] private float initialJoinDelay = 0.5f;
         [SerializeField] private float lobbyTimeout = 300f;
 
         [Header("- UI References")]
         [SerializeField] private Transform playersContainer;
+
         [SerializeField] private GameObject playerCardPrefab;
         [SerializeField] private TextMeshProUGUI statusText;
         [SerializeField] private TextMeshProUGUI timeoutText;
 
         [Header("- Gameplay Settings")]
         [SerializeField] private GameObject gameplayPanel;
+
         [SerializeField] private GameObject lobbyPanel;
 
         #endregion
@@ -120,16 +123,14 @@ namespace __SAE.Dyson.Scripts.Lobby
         /// <summary>
         /// Called on the frame when a script is enabled just before any of the Update methods are called the first time.
         /// </summary>
-        private void Start()
-        {
+        private void Start() {
             SetLobbyState(LobbyState.Connecting);
             UpdateStatusText();
 
             RegisterEventHandlers();
 
             _gameplayManager = FindObjectOfType<GameplayManager>();
-            if (_gameplayManager == null)
-            {
+            if (_gameplayManager == null) {
                 GameObject gameplayManagerObj = new GameObject("GameplayManager");
                 _gameplayManager = gameplayManagerObj.AddComponent<GameplayManager>();
             }
@@ -669,83 +670,101 @@ namespace __SAE.Dyson.Scripts.Lobby
         /// <summary>
         /// Spawns the player PREFABS in the lobby scene, for players to control them later.
         /// </summary>
-        private void StartGameplayInLobbyScene()
-        {
+        private void StartGameplayInLobbyScene() {
+            Debug.Log("StartGameplayInLobbyScene: Starting...");
+
             // Only run this once
-            if (gameplayStarted) return;
-            gameplayStarted = true;
-            
-            Debug.Log("Starting gameplay in lobby scene");
-            _gameplayManager = FindFirstObjectByType<GameplayManager>();
-            
-            if (_gameplayManager != null)
-            {
-                _gameplayManager.StartGameplay();
-                Debug.Log("Started gameplay using GameplayManager");
+            if (gameplayStarted) {
+                Debug.Log("StartGameplayInLobbyScene: Already started, returning");
+                return;
             }
-            else
-            {
+
+            gameplayStarted = true;
+
+            Debug.Log("StartGameplayInLobbyScene: Finding GameplayManager");
+            _gameplayManager = FindFirstObjectByType<GameplayManager>();
+
+            if (_gameplayManager != null) {
+                Debug.Log("StartGameplayInLobbyScene: Found GameplayManager, calling StartGameplay()");
+                _gameplayManager.StartGameplay();
+                Debug.Log("StartGameplayInLobbyScene: StartGameplay() completed");
+            }
+            else {
+                Debug.LogError("StartGameplayInLobbyScene: GameplayManager not found, using fallback method");
+
                 // Fallback method if GameplayManager is not available.
-                Debug.Log("GameplayManager not found, using fallback method");
-        
-                // Hide lobby UI.
-                if (lobbyPanel != null)
-                {
+                Debug.Log("StartGameplayInLobbyScene: Using fallback method");
+
+                // Hide lobby UI
+                if (lobbyPanel != null) {
                     lobbyPanel.SetActive(false);
+                    Debug.Log("StartGameplayInLobbyScene: Disabled lobby panel");
                 }
-                
-                // Show gameplay UI.
-                if (gameplayPanel != null)
-                {
+
+                // Show gameplay UI
+                if (gameplayPanel != null) {
                     gameplayPanel.SetActive(true);
+                    Debug.Log("StartGameplayInLobbyScene: Enabled gameplay panel");
                 }
-        
-                // Spawn players.
-                if (networkClient != null)
-                {
+
+                // Spawn players
+                if (networkClient != null) {
+                    Debug.Log("StartGameplayInLobbyScene: NetworkClient found, getting PlayerManager");
                     var playerManager = networkClient.GetPlayerManager();
-                    if (playerManager != null)
-                    {
+                    if (playerManager != null) {
+                        Debug.Log("StartGameplayInLobbyScene: PlayerManager found, setting gameplay active");
                         playerManager.SetGameplayActive(true);
+
+                        Debug.Log("StartGameplayInLobbyScene: Spawning local player");
                         playerManager.SpawnLocalPlayer();
-                        
-                        // Enable abilities if the player has an ability manager.
+
+                        // Enable abilities if the player has an ability manager
+                        Debug.Log("StartGameplayInLobbyScene: Getting local player object");
                         GameObject localPlayer = playerManager.GetLocalPlayerObject();
-                        if (localPlayer != null)
-                        {
-                            __SAE.Leonardo.Scripts.Abilities.AbilityManager abilityManager = 
+                        if (localPlayer != null) {
+                            Debug.Log("StartGameplayInLobbyScene: Local player found, finding AbilityManager");
+                            __SAE.Leonardo.Scripts.Abilities.AbilityManager abilityManager =
                                 localPlayer.GetComponent<__SAE.Leonardo.Scripts.Abilities.AbilityManager>();
-                            if (abilityManager != null)
-                            {
+                            if (abilityManager != null) {
+                                Debug.Log("StartGameplayInLobbyScene: AbilityManager found, enabling abilities");
                                 abilityManager.SetAbilitiesEnabled(true);
+                                Debug.Log("StartGameplayInLobbyScene: Abilities enabled");
+                            }
+                            else {
+                                Debug.LogError("StartGameplayInLobbyScene: No AbilityManager found on local player");
                             }
                         }
-                        
-                        Debug.Log("Spawned local player in lobby scene");
+                        else {
+                            Debug.LogError("StartGameplayInLobbyScene: Local player object not found");
+                        }
                     }
-                    else
-                    {
-                        Debug.LogError("Could not spawn players: PlayerManager not found");
+                    else {
+                        Debug.LogError("StartGameplayInLobbyScene: PlayerManager not found");
                     }
                 }
-                else
-                {
-                    Debug.LogError("Could not spawn players: NetworkClient not found");
+                else {
+                    Debug.LogError("StartGameplayInLobbyScene: NetworkClient not found");
                 }
             }
+
+            Debug.Log("StartGameplayInLobbyScene: Completed");
         }
 
         /// <summary>
         /// Called when a START_GAME message is received from the network. Initiates gameplay in the lobby scene.
         /// </summary>
         public void OnStartGameMessageReceived() {
+            Debug.Log("START_GAME message received by Lobby");
+
             if (lobbyTimeoutCoroutine != null) {
                 StopCoroutine(lobbyTimeoutCoroutine);
                 lobbyTimeoutCoroutine = null;
+                Debug.Log("Stopped lobby timeout coroutine");
             }
 
             SetLobbyState(LobbyState.Starting);
-            
+            Debug.Log("Set lobby state to Starting");
+
             // Start gameplay in the lobby scene
             StartGameplayInLobbyScene();
         }

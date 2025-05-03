@@ -29,49 +29,88 @@ namespace __SAE.Leonardo.Scripts.Player
                 Debug.LogError("PlayerManager: _localPlayerData is null! Make sure Initialize is called pendejo!");
                 return null;
             }
-    
+
             return _playerObjects.ContainsKey(_localPlayerData.tag) ? _playerObjects[_localPlayerData.tag] : null;
         }
 
         public void SpawnLocalPlayer() {
-            // Check if we already have this player spawned
-            if (_playerObjects.ContainsKey(_localPlayerData.tag)) {
-                Debug.LogWarning($"PlayerManager.cs: Local player {_localPlayerData.name} already spawned");
+            Debug.Log($"PlayerManager.SpawnLocalPlayer: Starting for player {_localPlayerData?.name}");
+
+            // Check if _localPlayerData is null.
+            if (_localPlayerData == null) {
+                Debug.LogError("PlayerManager.SpawnLocalPlayer: _localPlayerData is null!");
                 return;
             }
+
+            // Check if we already have this player spawned.
+            if (_playerObjects.ContainsKey(_localPlayerData.tag)) {
+                Debug.LogWarning(
+                    $"PlayerManager.SpawnLocalPlayer: Local player {_localPlayerData.name} already spawned");
+                return;
+            }
+
+            Debug.Log($"PlayerManager.SpawnLocalPlayer: Finding spawn point for player {_localPlayerData.name}");
 
             Vector3 position = Vector3.zero;
             Quaternion rotation = Quaternion.identity;
 
-            // Try to get a spawn point from the SpawnPointsManager
+            // Try to get a spawn point from the SpawnPointsManager.
             SpawnPointsManager spawnPointsManager = SpawnPointsManager.Instance;
             if (spawnPointsManager != null) {
+                Debug.Log(
+                    $"PlayerManager.SpawnLocalPlayer: SpawnPointsManager found, getting spawn point for ID {_localPlayerData.tag}");
                 Transform spawnPoint = spawnPointsManager.GetSpawnPointById(_localPlayerData.tag);
                 if (spawnPoint != null) {
                     position = spawnPoint.position;
                     rotation = spawnPoint.rotation;
+                    Debug.Log($"PlayerManager.SpawnLocalPlayer: Using spawn point at {position}");
                 }
                 else {
                     position = new Vector3(0, 1, 0);
+                    Debug.Log(
+                        $"PlayerManager.SpawnLocalPlayer: No spawn point found, using default position {position}");
                 }
             }
             else {
                 position = new Vector3(0, 1, 0);
+                Debug.LogWarning(
+                    "PlayerManager.SpawnLocalPlayer: SpawnPointsManager not found, using default position");
             }
 
+            Debug.Log($"PlayerManager.SpawnLocalPlayer: Checking if _playerPrefab is null: {_playerPrefab == null}");
+
+            if (_playerPrefab == null) {
+                Debug.LogError("PlayerManager.SpawnLocalPlayer: _playerPrefab is null!");
+                return;
+            }
+
+            Debug.Log($"PlayerManager.SpawnLocalPlayer: Instantiating player at {position}");
             GameObject newPlayer = Object.Instantiate(_playerPrefab, position, rotation);
+            if (newPlayer == null) {
+                Debug.LogError("PlayerManager.SpawnLocalPlayer: Failed to instantiate player!");
+                return;
+            }
+
+            Debug.Log(
+                $"PlayerManager.SpawnLocalPlayer: Player instantiated, adding to dictionary with tag {_localPlayerData.tag}");
             _playerObjects[_localPlayerData.tag] = newPlayer;
 
+            Debug.Log("PlayerManager.SpawnLocalPlayer: Setting player as local player");
             var controller = newPlayer.GetComponent<PlayerController>();
             if (controller != null) {
                 controller.SetLocalplayer(true);
+                Debug.Log("PlayerManager.SpawnLocalPlayer: Player controller configured as local player");
+            }
+            else {
+                Debug.LogError("PlayerManager.SpawnLocalPlayer: No PlayerController component found on player prefab!");
             }
 
             newPlayer.name = $"PlayerManager.cs: LocalPlayer_{_localPlayerData.name}";
-            Debug.Log($"PlayerManager.cs: Local player: {_localPlayerData.name} spawned at {position}");
+            Debug.Log($"PlayerManager.SpawnLocalPlayer: Local player {_localPlayerData.name} spawned at {position}");
 
-            // Activate gameplay state
+            // Activate gameplay state.
             SetGameplayActive(true);
+            Debug.Log("PlayerManager.SpawnLocalPlayer: Gameplay state activated");
         }
 
         //Hamad: adding function if the game resets, (really stupid way but I wanna see if it works)
@@ -167,7 +206,7 @@ namespace __SAE.Leonardo.Scripts.Player
                 }
             }
         }
-        
+
         //Dyson: Add function to handle freeze event
 
         public void HandleFreezeEvent(int playerTag, float freezeDuration, string effectName) {

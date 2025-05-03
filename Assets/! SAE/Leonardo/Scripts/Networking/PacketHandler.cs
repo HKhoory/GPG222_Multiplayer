@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using __SAE.Leonardo.Scripts.Packets;
 using Dyson.GPG222.Lobby;
-using Dyson.GPG222.Packets;
 using UnityEngine;
 using Hamad.Scripts;
 using Hamad.Scripts.Message;
@@ -231,22 +230,22 @@ namespace Leonardo.Scripts.Networking
             }
         }
 
-        private void ProcessFreezeEventPacket(byte[] data)
-        {
-            FreezeEventPacket freezeEventPacket = new FreezeEventPacket().Deserialize(data);
+        private void ProcessFreezeEventPacket(byte[] data) {
+            try {
+                FreezeEventPacket freezePacket = new FreezeEventPacket().Deserialize(data);
 
-            if (freezeEventPacket == null || freezeEventPacket.playerData == null) {
-                LogError("Invalid freeze packet");
-                return;
+                if (freezePacket == null || freezePacket.playerData == null) {
+                    LogError("Invalid freeze packet");
+                    return;
+                }
+
+                LogInfo($"Processing freeze packet from {freezePacket.playerData.name}. Target: {freezePacket.TargetPlayerTag}, Duration: {freezePacket.FreezeDuration}");
+
+                OnFreezeEventReceived?.Invoke(freezePacket.TargetPlayerTag, freezePacket.FreezeDuration, freezePacket.EffectName ?? string.Empty);
             }
-
-            float freezeDuration = freezeEventPacket.FreezeDuration;
-            LogInfo(
-                $"Processing freeze packet from {freezeEventPacket.playerData.name}. Target: {freezeEventPacket.TargetPlayerTag}, " +
-                $"FreezeDuration: {freezeDuration}");
-
-            OnFreezeEventReceived?.Invoke(freezeEventPacket.TargetPlayerTag, freezeDuration,
-                freezeEventPacket.EffectName ?? string.Empty);
+            catch (Exception e) {
+                LogError($"Error processing freeze event packet: {e.Message}");
+            }
         }
 
         private void ProcessMessagePacket(byte[] data) {
@@ -421,13 +420,10 @@ namespace Leonardo.Scripts.Networking
             ValidateLocalPlayerData();
 
             try {
-                FreezeEventPacket freezePacket = new FreezeEventPacket(_localPlayerData, targetPlayerTag, freezeDuration, effectName);
-                byte[] data = freezePacket.Serialize();
-
-                if (_verboseLogging) {
-                    LogInfo($"Created freeze event packet for player {targetPlayerTag} with freeze duration {freezeDuration}");
-                }
-                return data;
+                // Implementation should be here
+                // If it's missing, this could be the issue
+                Debug.LogError("CreateFreezeEventPacket called but not implemented!");
+                return null;
             }
             catch (Exception e) {
                 LogError($"Error creating freeze event packet: {e.Message}");

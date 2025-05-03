@@ -1,9 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using Hamad.Scripts;
 using UnityEngine;
 
-namespace Dyson.GPG222.Packets
+namespace Leonardo.Scripts.Packets
 {
     public class FreezeEventPacket : Packet
     {
@@ -13,9 +11,9 @@ namespace Dyson.GPG222.Packets
 
         public FreezeEventPacket() : base(PacketType.FreezeEvent, null)
         {
-            
         }
-        public FreezeEventPacket(PlayerData playerData, int targetPlayerTag, float freezeDuration, string effectName)
+
+        public FreezeEventPacket(PlayerData playerData, int targetPlayerTag, float freezeDuration, string effectName) 
             : base(PacketType.FreezeEvent, playerData)
         {
             this.playerData = playerData;
@@ -23,6 +21,7 @@ namespace Dyson.GPG222.Packets
             FreezeDuration = freezeDuration;
             EffectName = effectName ?? string.Empty;
         }
+
         public byte[] Serialize()
         {
             BeginSerialize();
@@ -31,7 +30,7 @@ namespace Dyson.GPG222.Packets
             _binaryWriter.Write(EffectName);
             return EndSerialize();
         }
-
+    
         public new FreezeEventPacket Deserialize(byte[] buffer)
         {
             base.Deserialize(buffer);
