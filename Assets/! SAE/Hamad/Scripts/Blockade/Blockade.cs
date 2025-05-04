@@ -13,7 +13,7 @@ namespace Hamad.Scripts.Blockade
         private float blockadeDuration;
         private Rigidbody _rb;
         //gameobject for blockade
-
+            
         private void Awake()
         {
             layerMask = LayerMask.GetMask("Player");

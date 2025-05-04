@@ -173,6 +173,17 @@ namespace Leonardo.Scripts.Networking
                             OnPacketError?.Invoke(Packet.PacketType.FreezeEvent, e.Message);
                         }
                         break;
+                    case Packet.PacketType.Blockade:
+                        try
+                        {
+                            ProcessBlockadePacket(data);
+                        }
+                        catch (Exception e)
+                        {
+                            LogError($"Error processing blockade: {e.Message}");
+                            OnPacketError?.Invoke(Packet.PacketType.Blockade, e.Message);
+                        }
+                        break;
                     case Packet.PacketType.Heartbeat:
                         try {
                             ProcessHeartbeatPacket(data);
@@ -258,6 +269,11 @@ namespace Leonardo.Scripts.Networking
             catch (Exception e) {
                 LogError($"Error processing freeze event packet: {e.Message}");
             }
+        }
+
+        private void ProcessBlockadePacket(byte[] data)
+        {
+
         }
 
         private void ProcessMessagePacket(byte[] data) {
@@ -449,6 +465,14 @@ namespace Leonardo.Scripts.Networking
                 LogError($"Error creating freeze event packet: {e.Message}");
                 return null;
             }
+        }
+
+        public byte[] CreateBlockadePacket(int playerTag)
+        {
+
+            //still wip
+
+            return null;
         }
 
         /// <summary>

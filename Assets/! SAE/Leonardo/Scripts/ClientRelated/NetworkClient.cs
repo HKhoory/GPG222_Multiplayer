@@ -327,6 +327,11 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             }
         }
 
+        public void SendBlockade(int playerTag)
+        {
+            
+        }
+
         /// <summary>
         /// Sends a heartbeat to keep the connection alive.
         /// </summary>
