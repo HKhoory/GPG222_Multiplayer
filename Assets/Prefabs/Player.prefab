@@ -170,8 +170,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e59ffa14bf069c145b55ac941f5fab77, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  abilities:
-  - {fileID: 2725488305148782076}
+  abilities: []
   ability1Key: 113
   ability2Key: 101
   ability3Key: 32

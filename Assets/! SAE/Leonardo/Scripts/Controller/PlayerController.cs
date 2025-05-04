@@ -191,12 +191,11 @@ namespace Leonardo.Scripts.Controller
         {
             if (!_isLocalPlayer) return;
             
+            StartCoroutine(FreezeCoroutine(freezeDuration));
             if (!string.IsNullOrEmpty(effectName) && EffectManager.Instance != null)
             {
                 EffectManager.Instance.PlayEffect(effectName, transform.position, transform.rotation);
             }
-
-            StartCoroutine(FreezeCoroutine(freezeDuration));
         }
 
         private IEnumerator FreezeCoroutine(float freezeDuration)
