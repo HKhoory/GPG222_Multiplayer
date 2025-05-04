@@ -327,9 +327,27 @@ namespace __SAE.Leonardo.Scripts.ClientRelated
             }
         }
 
-        public void SendBlockade(int playerTag)
+        public void SendBlockade(int playerTag, float duration, string effectName)
         {
-            
+            if (!IsConnected)
+            {
+                LogWarning($"Cannot send blockade: not connected to server");
+                return;
+            }
+            try
+            {
+                byte[] data = _packetHandler.CreateBlockadePacket(playerTag, duration, effectName);
+                _networkConnection.SendData(data);
+                if (verboseLogging)
+                {
+                    LogInfo($"Sent freeze event to player {playerTag} with freezeDuration {duration}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Failed to send freeze event: {ex.Message}");
+            }
+
         }
 
         /// <summary>

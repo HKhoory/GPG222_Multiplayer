@@ -12,6 +12,7 @@ using Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Controller;
 using Leonardo.Scripts.Packets;
 using Hamad.Scripts.Restart;
+using Hamad.Scripts.Blockade;
 
 namespace Leonardo.Scripts.Networking
 {
@@ -467,12 +468,25 @@ namespace Leonardo.Scripts.Networking
             }
         }
 
-        public byte[] CreateBlockadePacket(int playerTag)
+        public byte[] CreateBlockadePacket(int playerTag, float duration, string effectName)
         {
 
-            //still wip
+            try
+            {
+                BlockadePacket blockadePacket = new BlockadePacket(_localPlayerData, duration, playerTag, effectName);
+                byte[] data = blockadePacket.Serialize();
 
-            return null;
+                if (_verboseLogging)
+                {
+                    LogInfo($"Created freeze event packet for player {playerTag} with freezeduration {duration}");
+                }
+                return data;
+            }
+            catch (Exception e)
+            {
+                LogError($"Error creating freeze event packet: {e.Message}");
+                return null;
+            }
         }
 
         /// <summary>
