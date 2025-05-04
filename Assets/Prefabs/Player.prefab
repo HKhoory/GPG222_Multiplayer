@@ -212,7 +212,7 @@ GameObject:
   - component: {fileID: 6352382803964682205}
   - component: {fileID: 2476698737411808140}
   - component: {fileID: 1138429210810284002}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: blockade
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -322,6 +322,8 @@ MonoBehaviour:
   abilityDescription: Blocks other players from approaching, can also be used to
     push others
   effectName: Blockade
+  _coll: {fileID: 0}
+  _mesh: {fileID: 0}
 --- !u!1 &6017303658491998304
 GameObject:
   m_ObjectHideFlags: 0
