@@ -74,6 +74,7 @@ namespace Dyson.GPG222.Abilities
             if (hit.rigidbody != null)
             {
                 hit.rigidbody.constraints = RigidbodyConstraints.FreezeAll;
+                PlayEffect(hit.collider.transform.position, hit.collider.transform.rotation);
             }
 
             yield return new WaitForSeconds(freezeDuration);
