@@ -437,10 +437,13 @@ namespace Leonardo.Scripts.Networking
             ValidateLocalPlayerData();
 
             try {
-                // Implementation should be here
-                // If it's missing, this could be the issue
-                Debug.LogError("CreateFreezeEventPacket called but not implemented!");
-                return null;
+                FreezeEventPacket freezePacket = new FreezeEventPacket(_localPlayerData, targetPlayerTag, freezeDuration, effectName);
+                byte[] data = freezePacket.Serialize();
+
+                if (_verboseLogging) {
+                    LogInfo($"Created freeze event packet for player {targetPlayerTag} with freezeduration {freezeDuration}");
+                }
+                return data;
             }
             catch (Exception e) {
                 LogError($"Error creating freeze event packet: {e.Message}");

@@ -38,6 +38,11 @@ namespace Dyson.GPG222.Abilities
                     Color.yellow);
                 Debug.Log("Did Hit");
                 RemotePlayerController remotePlayer = hit.collider.GetComponent<RemotePlayerController>();
+                
+                if (remotePlayer == null)
+                {
+                    return false;
+                }
                // Only send network event.
                 int targetPlayerTag = remotePlayer.PlayerTag;
                 NetworkClient networkClient = FindObjectOfType<NetworkClient>();

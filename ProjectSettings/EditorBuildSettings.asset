@@ -20,4 +20,7 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/Gameplay.unity
     guid: f1cbc27510a49e54e9f9331aa5910fa9
+  - enabled: 0
+    path: Assets/! SAE/Dyson/Scenes/FreezeTestScene.unity
+    guid: 9e406c0ba2207374695995494c4a1c5b
   m_configObjects: {}
