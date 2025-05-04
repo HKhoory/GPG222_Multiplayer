@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using __SAE.Leonardo.Scripts.ClientRelated;
 using Leonardo.Scripts.Abilities;
+using Leonardo.Scripts.Controller;
 using UnityEngine;
 
 namespace Dyson.GPG222.Abilities
@@ -36,28 +37,23 @@ namespace Dyson.GPG222.Abilities
                 Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * hit.distance,
                     Color.yellow);
                 Debug.Log("Did Hit");
-                StartCoroutine(FreezeCoroutine(freezeDuration));
-                /*if (hit.rigidbody != null)
-                {
-                    hit.rigidbody.constraints = RigidbodyConstraints.FreezeAll;
-                    PlayEffect(hit.point, Quaternion.identity);
-                    return true;
-                } */
-              /*  // Only send network event.
+                RemotePlayerController remotePlayer = hit.collider.GetComponent<RemotePlayerController>();
+               // Only send network event.
                 int targetPlayerTag = remotePlayer.PlayerTag;
                 NetworkClient networkClient = FindObjectOfType<NetworkClient>();
                 if (networkClient != null && targetPlayerTag != -1)
                 {
                     networkClient.SendFreezeEvent(targetPlayerTag, freezeDuration, effectName);
                     // Play effect locally.
-                    PlayEffect(collider.transform.position, collider.transform.rotation);
-                    Debug.Log($"BasicPush.cs: Sent network push event for player with tag {targetPlayerTag}.");
+                    PlayEffect(hit.collider.transform.position, hit.collider.transform.rotation);
+                    Debug.Log($"FreezePlayer.cs: Sent network freeze event for player with tag {targetPlayerTag}.");
                 }
                 else
                 {
                     Debug.LogWarning(
-                        $"BasicPush.cs: Could not send network push event - NetworkClient or player tag not found.");
-                } */
+                        $"FreezePlayer.cs: Could not send freeze event - NetworkClient or player tag not found.");
+                }
+                StartCoroutine(FreezeCoroutine(freezeDuration));
             }
             else
             {

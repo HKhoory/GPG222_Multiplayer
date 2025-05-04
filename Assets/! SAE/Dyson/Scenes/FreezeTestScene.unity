@@ -467,6 +467,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 2725488305148782076, guid: 20e7d87ecdfb3b848921de998051075b, type: 3}
+      propertyPath: effectName
+      value: freeze_effect
+      objectReference: {fileID: 0}
+    - target: {fileID: 2725488305148782076, guid: 20e7d87ecdfb3b848921de998051075b, type: 3}
+      propertyPath: abilityName
+      value: FreezePlayer
+      objectReference: {fileID: 0}
+    - target: {fileID: 2725488305148782076, guid: 20e7d87ecdfb3b848921de998051075b, type: 3}
+      propertyPath: abilityDescription
+      value: Freezes the player
+      objectReference: {fileID: 0}
     - target: {fileID: 8192377564094142536, guid: 20e7d87ecdfb3b848921de998051075b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 2.3378954
@@ -525,6 +537,7 @@ GameObject:
   - component: {fileID: 971648956}
   - component: {fileID: 971648955}
   - component: {fileID: 971648959}
+  - component: {fileID: 971648960}
   m_Layer: 6
   m_Name: PlayerReceiving
   m_TagString: Player
@@ -645,6 +658,22 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &971648960
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971648954}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4d46453299e6bb4c8e0dce4a8f26e33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interpolationSpeed: 10
+  rotationSpeed: 10
+  minimumMovementThreshold: 0.05
+  playerTag: -1
 --- !u!1 &2047761252
 GameObject:
   m_ObjectHideFlags: 0
